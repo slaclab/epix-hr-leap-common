@@ -32,9 +32,9 @@ use surf.AxiStreamPkg.all;
 use surf.AxiLitePkg.all;
 use surf.SsiPkg.all;
 
-library epix_hr_core;
-use epix_hr_core.Dac8812Pkg.all;
-use epix_hr_core.DacModelsPkg.all;
+library work;
+use work.Dac8812Pkg.all;
+use work.DacModelsPkg.all;
 
 entity DacWaveformGenAxi is
    generic (
@@ -245,7 +245,7 @@ begin
     -- component instantiation
     --------------------------------------------------
     G_DAC8812_CONTROL : if DAC_MODEL_G = DAC8812 generate
-    DAC8812_0: entity epix_hr_core.Dac8812Cntrl
+    DAC8812_0: entity work.Dac8812Cntrl
         generic map (
             TPD_G => TPD_G)
         port map (
@@ -261,7 +261,7 @@ begin
    end generate;
 
    G_DAC5719_CONTROL : if DAC_MODEL_G = DAC5719 generate
-   DAC5719_0: entity epix_hr_core.DacMax5719aCntrl
+   DAC5719_0: entity work.DacMax5719aCntrl
        generic map (
            TPD_G => TPD_G)
        port map (

@@ -23,7 +23,7 @@ library surf;
 use surf.StdRtlPkg.all;
 use surf.AxiLitePkg.all;
 
-library epix_hr_core;
+library work;
 
 library unisim;
 use unisim.vcomponents.all;
@@ -134,7 +134,7 @@ begin
    -- DAC Controller
    -----------------------------------------------
    G_MAX5443 : for i in 0 to (NUM_DAC_G-1) generate
-       U_DacCntrl : entity epix_hr_core.DacCntrl
+       U_DacCntrl : entity work.DacCntrl
        generic map (
           TPD_G => TPD_G
        )

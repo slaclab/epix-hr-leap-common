@@ -26,8 +26,8 @@ use surf.StdRtlPkg.all;
 use surf.AxiLitePkg.all;
 use surf.AxiStreamPkg.all;
 
-library epix_hr_core;
-use epix_hr_core.HrAdcPkg.all;
+library work;
+use work.HrAdcPkg.all;
 
 library UNISIM;
 use UNISIM.vcomponents.all;
@@ -85,7 +85,7 @@ architecture rtl of HrAdcReadoutGroup is
 begin
 
  GEN_ULTRASCALE_HRADC : if ((XIL_DEVICE_G = "ULTRASCALE") and (DATA_TYPE_G = "12b14b")) generate
-    U_HrADC_0 : entity epix_hr_core.Hr12bAdcReadoutGroupVsA
+    U_HrADC_0 : entity work.Hr12bAdcReadoutGroupVsA
       generic map (
         TPD_G             => TPD_G,
         SIMULATION_G      => SIMULATION_G,
@@ -117,7 +117,7 @@ begin
   end generate GEN_ULTRASCALE_HRADC;
 
     GEN_ULTRASCALE_HRADC16 : if ((XIL_DEVICE_G = "ULTRASCALE") and (DATA_TYPE_G = "16b20b")) generate
-    U_HrADC_0 : entity epix_hr_core.Hr16bAdcReadoutGroupUS
+    U_HrADC_0 : entity work.Hr16bAdcReadoutGroupUS
       generic map (
         TPD_G             => TPD_G,
         NUM_CHANNELS_G    => NUM_CHANNELS_G,

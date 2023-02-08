@@ -24,7 +24,6 @@ use surf.AxiLitePkg.all;
 use surf.SsiCmdMasterPkg.all;
 use surf.Pgp2bPkg.all;
 
-library epix_hr_core;
 
 entity TrigControlAxi is
    generic (
@@ -346,7 +345,7 @@ begin
    --------------------------------
    -- Autotrigger block
    --------------------------------
-   U_AutoTrig : entity epix_hr_core.AutoTrigger
+   U_AutoTrig : entity work.AutoTrigger
    port map (
       -- Sync clock and reset
       sysClk        => appClk,

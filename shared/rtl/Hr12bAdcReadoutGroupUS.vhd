@@ -26,8 +26,8 @@ use surf.StdRtlPkg.all;
 use surf.AxiLitePkg.all;
 use surf.AxiStreamPkg.all;
 
-library epix_hr_core;
-use epix_hr_core.HrAdcPkg.all;
+library work;
+use work.HrAdcPkg.all;
 
 library UNISIM;
 use UNISIM.vcomponents.all;
@@ -385,7 +385,7 @@ begin
    -------------------------------------------------------------------------------------------------
    -- Deserializers
    -------------------------------------------------------------------------------------------------
-   U_FRAME_DESERIALIZER : entity epix_hr_core.Hr12bAdcDeserializerUS
+   U_FRAME_DESERIALIZER : entity work.Hr12bAdcDeserializerUS
       generic map (
         TPD_G             => TPD_G,
         NUM_CHANNELS_G    => 8,
@@ -418,7 +418,7 @@ begin
    GenData : for i in NUM_CHANNELS_G-1 downto 0 generate
 
 
-      U_DATA_DESERIALIZER : entity epix_hr_core.Hr12bAdcDeserializerUS
+      U_DATA_DESERIALIZER : entity work.Hr12bAdcDeserializerUS
       generic map (
         TPD_G             => TPD_G,
         NUM_CHANNELS_G    => 8,

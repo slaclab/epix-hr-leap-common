@@ -24,9 +24,9 @@ use surf.AxiStreamPkg.all;
 use surf.AxiLitePkg.all;
 use surf.SsiPkg.all;
 
-library epix_hr_core;
-use epix_hr_core.EpixHrCorePkg.all;
-use epix_hr_core.Dac8812Pkg.all;
+library work;
+use work.EpixHrCorePkg.all;
+use work.Dac8812Pkg.all;
 
 entity Dac8812Axi is
    generic (
@@ -97,7 +97,7 @@ begin
     dacData  <= dacSync.dacData;
     dacCh    <= dacSync.dacCh;
 
-    DAC8812_0: entity epix_hr_core.Dac8812Cntrl
+    DAC8812_0: entity work.Dac8812Cntrl
         generic map (
             TPD_G => TPD_G)
         port map (

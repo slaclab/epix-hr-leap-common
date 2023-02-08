@@ -25,8 +25,7 @@ use ieee.numeric_std.all;
 library surf;
 use surf.StdRtlPkg.all;
 
-library epix_hr_core;
-use epix_hr_core.SlowAdcPkg.all;
+use work.SlowAdcPkg.all;
 
 --
 -- The Unisim Library is used to define Xilinx primitives. It is also used during

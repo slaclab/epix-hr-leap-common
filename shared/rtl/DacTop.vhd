@@ -20,10 +20,8 @@ use surf.StdRtlPkg.all;
 use surf.AxiStreamPkg.all;
 use surf.AxiLitePkg.all;
 
-library epix_hr_leap_common;
 
-library epix_hr_leap_common;
-use epix_hr_leap_common.CorePkg.all;
+use work.CorePkg.all;
 
 library unisim;
 use unisim.vcomponents.all;

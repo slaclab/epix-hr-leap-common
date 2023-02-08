@@ -27,8 +27,7 @@ use surf.AxiStreamPkg.all;
 use surf.AxiLitePkg.all;
 use surf.SsiPkg.all;
 
-library epix_hr_core;
-use epix_hr_core.ScopeTypes.all;
+use work.ScopeTypes.all;
 
 entity PseudoScopeAxi is
    generic (
@@ -255,7 +254,7 @@ begin
    adcChBValid <= adcValid(to_integer(unsigned(scopeSync.inputChannelB)));
 
    -- Instantiate ring buffers for storing the ADC data
-   RingBufferA : entity epix_hr_core.RingBuffer
+   RingBufferA : entity work.RingBuffer
       generic map(
          MEMORY_TYPE_G=> "block",
          DATA_WIDTH_G => 16,
@@ -276,7 +275,7 @@ begin
          skipSamples => scopeSync.skipSamples,
          depth       => scopeSync.traceLength
       );
-   RingBufferB : entity epix_hr_core.RingBuffer
+   RingBufferB : entity work.RingBuffer
       generic map(
          MEMORY_TYPE_G=> "block",
          DATA_WIDTH_G => 16,
