@@ -28,8 +28,8 @@ use surf.StdRtlPkg.all;
 use surf.AxiLitePkg.all;
 use surf.AxiStreamPkg.all;
 
-library epix_hr_core;
-use epix_hr_core.HrAdcPkg.all;
+library work;
+use work.HrAdcPkg.all;
 
 library UNISIM;
 use UNISIM.vcomponents.all;

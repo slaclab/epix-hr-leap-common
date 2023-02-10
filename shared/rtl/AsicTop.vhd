@@ -34,11 +34,8 @@ library unisim;
 use unisim.vcomponents.all;
 
 use work.AppPkg.all;
+use work.CorePkg.all;
 
-library epix_leap_core;
-use epix_leap_core.CorePkg.all;
-
-library epix_hr_core;
 
 entity AsicTop is
    generic (

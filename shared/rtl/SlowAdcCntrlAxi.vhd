@@ -31,7 +31,7 @@ use surf.AxiLitePkg.all;
 use surf.AxiStreamPkg.all;
 use surf.SsiPkg.all;
 
-library epix_hr_core;
+library work;
 
 entity SlowAdcCntrlAxi is
    generic (
@@ -583,7 +583,7 @@ begin
 
 
    -- conversion LUT
-   SlowAdcLUT_U: entity epix_hr_core.SlowAdcLUT
+   SlowAdcLUT_U: entity work.SlowAdcLUT
    port map (
       sysClk          => sysClk,
       sysClkRst       => sysClkRst,
@@ -592,7 +592,7 @@ begin
    );
 
    -- ADC data stream
-   SlowAdcStream_U: entity epix_hr_core.SlowAdcStream
+   SlowAdcStream_U: entity work.SlowAdcStream
    port map (
       sysClk               => sysClk,
       sysRst               => sysClkRst,

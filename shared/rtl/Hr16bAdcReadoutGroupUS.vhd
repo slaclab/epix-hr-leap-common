@@ -26,8 +26,8 @@ use surf.StdRtlPkg.all;
 use surf.AxiLitePkg.all;
 use surf.AxiStreamPkg.all;
 
-library epix_hr_core;
-use epix_hr_core.HrAdcPkg.all;
+library work;
+use work.HrAdcPkg.all;
 
 library UNISIM;
 use UNISIM.vcomponents.all;
@@ -451,7 +451,7 @@ begin
       signal dataDelaySet : slv(NUM_CHANNELS_G-1 downto 0);
       signal dataDelay    : slv9Array(NUM_CHANNELS_G-1 downto 0);
    begin
-      U_DATA_DESERIALIZER : entity epix_hr_core.Hr16bAdcDeserializer
+      U_DATA_DESERIALIZER : entity work.Hr16bAdcDeserializer
       generic map (
         TPD_G             => TPD_G,
         NUM_CHANNELS_G    => NUM_CHANNELS_G,
