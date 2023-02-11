@@ -82,7 +82,7 @@ begin
          axiClkRst           => axilRst
       );
 
-   U_ASICS : for i in NUMBER_OF_ASICS_C - 1 downto 0 generate 
+   GEN_VEC : for i in NUMBER_OF_ASICS_C - 1 downto 0 generate 
       U_Deser_Group : entity work.AppDeserGroup
          generic map (
             TPD_G          => TPD_G,

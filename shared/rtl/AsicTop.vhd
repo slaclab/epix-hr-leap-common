@@ -46,6 +46,7 @@ entity AsicTop is
       AXIL_BASE_ADDR_G        : slv(31 downto 0);
       NUM_OF_PSCOPE_G         : integer       := 4;
       NUM_OF_SLOW_ADCS_G      : integer       := 2;
+      NUM_CARRIERS_G          : integer       := 1;
       BUILD_INFO_G            : BuildInfoType
    );
    port (
@@ -218,7 +219,7 @@ begin
 
    boardConfig      <= boardConfigSig;
 
-   U_AxiLiteCrossbar : entity surf.AxiLiteCrossbar
+   U_ASIC_XBAR  : entity surf.AxiLiteCrossbar
       generic map (
          NUM_SLAVE_SLOTS_G  => NUM_ASIC_AXIL_SLAVES_C,
          NUM_MASTER_SLOTS_G => NUM_ASIC_AXIL_MASTERS_C,
@@ -367,8 +368,8 @@ begin
       -----------------------------------------------------------------------------
       -- generate stream frames
       -----------------------------------------------------------------------------
-      G_ASICS : for i in NUMBER_OF_ASICS_C - 1 downto 0 generate
-         U_Framers : entity work.DigitalAsicStreamAxiV2
+      G_ASICS : for i in NUM_CARRIERS_G - 1 downto 0 generate
+         U_DigitalAsicStreamAxiV2  : entity work.DigitalAsicStreamAxiV2
             generic map(
                TPD_G               => TPD_G,
                VC_NO_G             => "0000",
@@ -404,38 +405,40 @@ begin
                acqNo             => boardConfigSig.acqCnt,
                startRdout        => dataSendStreched
             );
-      
-      U_EventBuilder : entity surf.AxiStreamBatcherEventBuilder
-         generic map (
-              TPD_G          => TPD_G,
-              NUM_SLAVES_G   => 2,
-              MODE_G         => "ROUTED",
-              TDEST_ROUTES_G => (
-                0           => "0000000-",
-                1           => "00000010"),
-              TRANS_TDEST_G  => X"01",
-              AXIS_CONFIG_G  => SSI_CONFIG_INIT_C
-              )
-            port map (
-              -- Clock and Reset
-              axisClk                    => axiClk,
-              axisRst                    => axiRst,
-              -- AXI-Lite Interface (axisClk domain)
-              axilReadMaster             => axilReadMasters(EVENTBUILDER0_INDEX_C + i),
-              axilReadSlave              => axilReadSlaves(EVENTBUILDER0_INDEX_C + i),
-              axilWriteMaster            => axilWriteMasters(EVENTBUILDER0_INDEX_C + i),
-              axilWriteSlave             => axilWriteSlaves(EVENTBUILDER0_INDEX_C + i),
-              -- Inbound Master AXIS Interfaces
-              sAxisMasters(0)            => eventTimingMsgMasterArray(i),
-              sAxisMasters(1)            => mAxisMastersASIC(i),
-              -- Inbound Slave AXIS Interfaces
-              sAxisSlaves(0)             => eventTimingMsgSlaveArray(i),
-              sAxisSlaves(1)             => mAxisSlavesASIC(i),
-              -- Outbound AXIS
-              mAxisMaster                => asicDataMasters(i), --to core
-              mAxisSlave                 => asicDataSlaves(i)   --to core
-              );
       end generate;
+      
+      G_EventBuilders : for i in 0 to NUM_CARRIERS_G-1 generate
+         U_EventBuilder : entity surf.AxiStreamBatcherEventBuilder
+            generic map (
+               TPD_G          => TPD_G,
+               NUM_SLAVES_G   => 2,
+               MODE_G         => "ROUTED",
+               TDEST_ROUTES_G => (
+                  0           => "0000000-",
+                  1           => "00000010"),
+               TRANS_TDEST_G  => X"01",
+               AXIS_CONFIG_G  => SSI_CONFIG_INIT_C
+               )
+               port map (
+               -- Clock and Reset
+               axisClk                    => axiClk,
+               axisRst                    => axiRst,
+               -- AXI-Lite Interface (axisClk domain)
+               axilReadMaster             => axilReadMasters(EVENTBUILDER0_INDEX_C + i),
+               axilReadSlave              => axilReadSlaves(EVENTBUILDER0_INDEX_C + i),
+               axilWriteMaster            => axilWriteMasters(EVENTBUILDER0_INDEX_C + i),
+               axilWriteSlave             => axilWriteSlaves(EVENTBUILDER0_INDEX_C + i),
+               -- Inbound Master AXIS Interfaces
+               sAxisMasters(0)            => eventTimingMsgMasterArray(i),
+               sAxisMasters(1)            => mAxisMastersASIC(i),
+               -- Inbound Slave AXIS Interfaces
+               sAxisSlaves(0)             => eventTimingMsgSlaveArray(i),
+               sAxisSlaves(1)             => mAxisSlavesASIC(i),
+               -- Outbound AXIS
+               mAxisMaster                => asicDataMasters(i), --to core
+               mAxisSlave                 => asicDataSlaves(i)   --to core
+               );
+   end generate;
    
    asicAcq <= iAsicAcq;
    asicR0 <= iAsicSRO;
