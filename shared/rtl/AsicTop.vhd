@@ -36,6 +36,7 @@ use unisim.vcomponents.all;
 use work.AppPkg.all;
 use work.CorePkg.all;
 
+library epix_hr_core;
 
 entity AsicTop is
    generic (
@@ -286,7 +287,7 @@ begin
    ------------------------------------------
    --             Trig control             --
    ------------------------------------------ 
-   U_TrigControl : entity work.TrigControlAxi
+   U_TrigControl : entity epix_hr_core.TrigControlAxi
       port map (
          -- Trigger outputs
          appClk            => axiClk,
