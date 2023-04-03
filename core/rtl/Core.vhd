@@ -1,9 +1,8 @@
 -------------------------------------------------------------------------------
 -- Company    : SLAC National Accelerator Laboratory
 -------------------------------------------------------------------------------
--- Description: Core Interface for ePix320kM
+-- Description: Core Interface
 -------------------------------------------------------------------------------
--- This file is part of 'ePix320kM firmware'.
 -- It is subject to the license terms in the LICENSE.txt file found in the
 -- top-level directory of this distribution and at:
 --    https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html.
