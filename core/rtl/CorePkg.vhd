@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 -- Company    : SLAC National Accelerator Laboratory
 -------------------------------------------------------------------------------
--- Description: EPixHR10k2M VHDL package
+-- Description: Core VHDL package
 -------------------------------------------------------------------------------
 -- This file is part of 'ATLAS ATCA LINK AGG DEV'.
 -- It is subject to the license terms in the LICENSE.txt file found in the

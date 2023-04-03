@@ -149,7 +149,7 @@ architecture rtl of AsicTop is
    constant DIG_ASIC_STREAM_AXI_INDEX_C   : natural := 2; 
    constant EVENTBUILDER0_INDEX_C         : natural := 6;
 
-   signal ASIC_AXIL_CONFIG_G            : AxiLiteCrossbarMasterConfigArray(NUM_ASIC_AXIL_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_ASIC_AXIL_MASTERS_C, AXIL_BASE_ADDR_G, 24, 20);
+   constant ASIC_AXIL_CONFIG_C            : AxiLiteCrossbarMasterConfigArray(NUM_ASIC_AXIL_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_ASIC_AXIL_MASTERS_C, AXIL_BASE_ADDR_G, 24, 20);
 
    -- Master AXI-Lite Signals
    signal axilWriteMasters             : AxiLiteWriteMasterArray(NUM_ASIC_AXIL_MASTERS_C-1 downto 0);
@@ -223,7 +223,7 @@ begin
       generic map (
          NUM_SLAVE_SLOTS_G  => NUM_ASIC_AXIL_SLAVES_C,
          NUM_MASTER_SLOTS_G => NUM_ASIC_AXIL_MASTERS_C,
-         MASTERS_CONFIG_G   => ASIC_AXIL_CONFIG_G
+         MASTERS_CONFIG_G   => ASIC_AXIL_CONFIG_C
       )
       port map (
          sAxiWriteMasters(0)    => axilWriteMaster,    -- to entity
