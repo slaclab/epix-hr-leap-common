@@ -10,9 +10,12 @@ if { $::env(RELEASE) == "EPixHR10k2M" } {
 
    # Adding the default Si5345 configuration
     add_files -norecurse "$::DIR_PATH/pll-config/EPixHR10k2M/leapCorePllConfig.mem"
+    puts "Using EPixHR10k2M PLL configuration"
 
 } elseif { $::env(RELEASE) == "ePixHRM320k" } {
 
     add_files -norecurse "$::DIR_PATH/pll-config/ePix320KM/leapCorePllConfig.mem"
-
+    puts "Using ePixHRM320k PLL configuration"
+} else {
+    puts "No pll configuration was used!!"
 }
