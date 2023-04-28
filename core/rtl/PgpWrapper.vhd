@@ -390,7 +390,7 @@ begin
          ibServerSlave  => obXvcSlave
       );
 
-   U_VC1_TX : entity surf.PgpTxVcFifo
+   U_VC2_TX : entity surf.PgpTxVcFifo
       generic map (
          TPD_G            => TPD_G,
          GEN_SYNC_FIFO_G  => true,      -- same clock domain

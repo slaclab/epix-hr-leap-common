@@ -50,8 +50,8 @@ entity SystemDevices is
       jitclnrCsL     : out   sl;
       jitclnrIntr    : in    sl;
       jitclnrLolL    : in    sl;
-      jitclnrOeL     : out   sl;
-      jitclnrRstL    : out   sl;
+      jitclnrOeL     : out   sl             := '0';
+      jitclnrRstL    : out   sl             := '1';
       jitclnrSclk    : out   sl;
       jitclnrSdio    : out   sl;
       jitclnrSdo     : in    sl;
