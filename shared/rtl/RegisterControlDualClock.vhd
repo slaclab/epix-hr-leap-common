@@ -245,7 +245,7 @@ begin
    -------------------------------
    -- Configuration Register
    -------------------------------  
-   comb : process (axiReadMaster, axiReset, axiWriteMaster, r, idValids, idValues, acqStart, saciReadoutAck, asicRefClockFreq, v1LinkUp, v2LinkUp) is
+   comb : process (axiReadMaster, axilRst, axiWriteMaster, r, idValids, idValues, acqStart, saciReadoutAck, asicRefClockFreq, v1LinkUp, v2LinkUp) is
       variable v           : RegType;
       variable regCon      : AxiLiteEndPointType;
       
@@ -405,13 +405,13 @@ begin
   
     
       -- Synchronous Reset
-      if axiReset = '1' then
+      if axilRst = '1' then
          v := REG_INIT_C;
       end if;
 
       -- maps ASIC ref clock frequency. Multiply by 2 since ref clock is asic
       -- rd clock divide by 2
-      v.asicRefClockFreq := asicRefClockFreq(30 downto 0) & '0';
+      v.asicRefClockFreq := asicRefClockFreq;
 
       -- Register the variable for next clock cycle
       rin <= v;
@@ -729,7 +729,7 @@ begin
    generic map(
       TPD_G             => TPD_G,
       USE_DSP_G         => "no",   -- "no" for no DSP implementation, "yes" to use DSP slices
-      REF_CLK_FREQ_G    => 100.0E+6,       -- Reference Clock frequency, units of Hz
+      REF_CLK_FREQ_G    => 156.25E+6,       -- Reference Clock frequency, units of Hz
       REFRESH_RATE_G    => ite(SIMULATION_G, 1.0E+3, 1.0E+0),         -- Refresh rate, units of Hz
       CLK_LOWER_LIMIT_G => 40.0E+6,       -- Lower Limit for clock lock, units of Hz
       CLK_UPPER_LIMIT_G => 250.0E+6,       -- Lower Limit for clock lock, units of Hz
