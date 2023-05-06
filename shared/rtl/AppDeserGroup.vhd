@@ -1,3 +1,16 @@
+-------------------------------------------------------------------------------
+-- Company    : SLAC National Accelerator Laboratory
+-------------------------------------------------------------------------------
+-- Description: Deserializer Group
+-------------------------------------------------------------------------------
+-- This file is part of 'epix-hr-leap-common' submodule.
+-- It is subject to the license terms in the LICENSE.txt file found in the
+-- top-level directory of this distribution and at:
+--    https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html.
+-- No part of 'epix-hr-leap-common', including this file,
+-- may be copied, modified, propagated, or distributed except according to
+-- the terms contained in the LICENSE.txt file.
+-------------------------------------------------------------------------------
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -7,11 +20,11 @@ use surf.StdRtlPkg.all;
 use surf.AxiStreamPkg.all;
 use surf.AxiLitePkg.all;
 
-library unisim;
-use unisim.vcomponents.all;
-
 library work;
 use work.AppPkg.all;
+
+library unisim;
+use unisim.vcomponents.all;
 
 entity AppDeserGroup is
    generic (
@@ -20,6 +33,9 @@ entity AppDeserGroup is
        NUM_OF_LANES_G   : integer := 24
    );
    port (
+      -- Asic Ports
+      asicDataP         : in  slv(NUM_OF_LANES_G - 1  downto 0);
+      asicDataM         : in  slv(NUM_OF_LANES_G - 1  downto 0);
       -- AXI-Lite Interface (axilClk domain)
       axilClk           : in  sl;
       axilRst           : in  sl;
@@ -27,16 +43,10 @@ entity AppDeserGroup is
       axilReadSlave     : out AxiLiteReadSlaveType;
       axilWriteMaster   : in  AxiLiteWriteMasterType;
       axilWriteSlave    : out AxiLiteWriteSlaveType;
-
-      -- Asic Ports
-      asicDataP         : in  slv(NUM_OF_LANES_G - 1  downto 0);
-      asicDataM         : in  slv(NUM_OF_LANES_G - 1  downto 0);
-
       -- Ref Clocks MMCM Out (0)
-      clk250            : in sl;
-      sspRst            : in sl;
+      sspClk4x          : in sl;
       sspClk            : in sl;
-
+      sspRst            : in sl;
       -- ssp outputs
       sspLinkUp         : out slv(NUM_OF_LANES_G - 1 downto 0);
       sspValid          : out slv(NUM_OF_LANES_G - 1 downto 0);
@@ -48,10 +58,10 @@ entity AppDeserGroup is
 end entity AppDeserGroup;
 
 architecture mapping of AppDeserGroup is
-   
-   signal deserData       : Slv8Array(23 downto 0);
-   signal dlyLoad         : slv(23 downto 0);
-   signal dlyCfg          : Slv9Array(23 downto 0);
+
+   signal deserData : Slv8Array(23 downto 0);
+   signal dlyLoad   : slv(23 downto 0);
+   signal dlyCfg    : Slv9Array(23 downto 0);
 
 begin
     
@@ -67,19 +77,21 @@ begin
             )
          port map (
             -- SELECTIO Ports
-            rxP            => asicDataP(i),
-            rxN            => asicDataM(i),
+            rxP     => asicDataP(i),
+            rxN     => asicDataM(i),
             -- Clock and Reset Interface
-            clkx4          => clk250,
-            clkx1          => sspClk,
-            rstx1          => sspRst,
+            clkx4   => sspClk4x,
+            clkx1   => sspClk,
+            rstx1   => sspRst,
             -- Delay Configuration
-            dlyLoad        => dlyLoad(i),
-            dlyCfg         => dlyCfg(i),
+            dlyLoad => dlyLoad(i),
+            dlyCfg  => dlyCfg(i),
             -- Output
-            dataOut        => deserData(i) 
+            dataOut => deserData(i)
          );
-         end generate;
+
+         end generate GEN_VEC;
+
    -------------------------------------------------------
    -- ASIC Gearboxes and SSP decoders
    -------------------------------------------------------

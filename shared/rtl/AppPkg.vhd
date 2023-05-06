@@ -4,11 +4,11 @@
 -------------------------------------------------------------------------------
 -- Description: Application's Package File
 -------------------------------------------------------------------------------
--- This file is part of 'EPIX HR Firmware'.
+-- This file is part of 'epix-hr-leap-common'.
 -- It is subject to the license terms in the LICENSE.txt file found in the 
 -- top-level directory of this distribution and at: 
 --    https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html. 
--- No part of 'EPIX HR Firmware', including this file, 
+-- No part of 'epix-hr-leap-common', including this file, 
 -- may be copied, modified, propagated, or distributed except according to 
 -- the terms contained in the LICENSE.txt file.
 -------------------------------------------------------------------------------
@@ -34,8 +34,8 @@ package AppPkg is
       requestStartupCal    : sl;
       startupAck           : sl;
       startupFail          : sl;
-      epixhrDbgSel1        : slv(4 downto 0);
-      epixhrDbgSel2        : slv(4 downto 0);
+      epixhrDbgSel1        : slv(5 downto 0);
+      epixhrDbgSel2        : slv(5 downto 0);
       epixhrDbgSel3        : slv(3 downto 0);
    end record;
 

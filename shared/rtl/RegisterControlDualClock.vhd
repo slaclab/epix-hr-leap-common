@@ -33,6 +33,8 @@ entity RegisterControlDualClock is
       SIMULATION_G      : boolean            := false;
       EN_DEVICE_DNA_G   : boolean            := true;
       CLK_PERIOD_G      : real               := 10.0e-9;
+      NUM_DS2411_G      : positive           := 3;
+      CLK_UPPER_LIMIT_G : real               := 320.0E+6;
       BUILD_INFO_G      : BuildInfoType
    );
    port (
@@ -47,12 +49,11 @@ entity RegisterControlDualClock is
       -- Register Inputs/Outputs (axiClk domain)
       boardConfig     : out AppConfigType;
       -- 1-wire board ID interfaces
-      serialIdIo     : inout slv(2 downto 0);
+      serialIdIo     : inout slv(NUM_DS2411_G-1 downto 0);
       -- ASICs acquisition signals
       acqStart       : in  sl;
       asicR0         : out sl;
       asicAcq        : out sl;
-      asicPPbe       : out sl;
       asicDigRst     : out sl;
       saciReadoutReq : out sl;
       saciReadoutAck : in  sl;
@@ -67,8 +68,10 @@ entity RegisterControlDualClock is
       asicSync       : out sl;
       rdClkSel       : out sl;
       -- timing status
+      digOut         : in  slv(1 downto 0);      
       v1LinkUp       : in  sl;
-      v2LinkUp       : in  sl
+      v2LinkUp       : in  sl;
+      pwrGood        : in  sl
    );
 end RegisterControlDualClock;
 
@@ -236,7 +239,8 @@ architecture rtl of RegisterControlDualClock is
    constant BUILD_INFO_C       : BuildInfoRetType    := toBuildInfo(BUILD_INFO_G);
 
    signal asicRefClockFreq : slv(31 downto 0);
-   
+
+   signal digOutSync : slv(1 downto 0);
    
 begin
 
@@ -312,11 +316,13 @@ begin
       axiSlaveRegister(regCon,  x"025C",  0, v.boardRegOut.epixhrDbgSel2);
       axiSlaveRegister(regCon,  x"0260",  0, v.boardRegOut.epixhrDbgSel3);
       axiSlaveRegister(regCon,  x"0264",  0, v.boardRegOut.requestStartupCal);
-      axiSlaveRegister(regCon,  x"0264",  1, v.boardRegOut.startupAck);          -- set by Microblaze
-      axiSlaveRegister(regCon,  x"0264",  2, v.boardRegOut.startupFail);         -- set by Microblaze
+      axiSlaveRegister(regCon,  x"0264",  1, v.boardRegOut.startupAck);
+      axiSlaveRegister(regCon,  x"0264",  2, v.boardRegOut.startupFail);
       axiSlaveRegisterR(regCon, x"0268",  0, r.asicRefClockFreq);
       axiSlaveRegisterR(regCon, x"026C",  3, v.v1LinkUp);
       axiSlaveRegisterR(regCon, x"026C",  4, v.v2LinkUp);
+      axiSlaveRegisterR(regCon, x"026C",  5, digOutSync(0));
+      axiSlaveRegisterR(regCon, x"026C",  6, digOutSync(1));
       axiSlaveRegister(regCon,  x"0270",  0, v.asicAcqReg.rdClkSel);
       
       axiSlaveDefault(regCon, v.axiWriteSlave, v.axiReadSlave, AXI_RESP_OK_C);
@@ -423,7 +429,6 @@ begin
       axiWriteSlave  <= r.axiWriteSlave;
       boardConfig    <= r.boardRegOut;
       saciReadoutReq <= r.asicAcqReg.saciSync;
-      asicPPbe       <= r.asicAcqReg.PPbe;
       --asicDigRst      <= r.asicAcqReg.Ppmat;
       asicR0         <= r.asicAcqReg.Start;
       asicAcq        <= r.asicAcqReg.Acq;
@@ -441,6 +446,15 @@ begin
    -----------------------------------------------
    -- Crossing clock domains
    -----------------------------------------------
+   U_digOutSync : entity surf.SynchronizerVector 
+       generic map(
+         TPD_G   => TPD_G,
+         WIDTH_G => 2)
+       port map(
+         clk     => axilClk,
+         dataIn  => digOut,
+         dataOut => digOutSync);   
+   
    -----------------------------------------------
    SynchronizerSR0Polarity : entity surf.Synchronizer
        generic map(
@@ -690,7 +704,7 @@ begin
    -- Serial IDs: FPGA Device DNA + DS2411's
    -----------------------------------------------  
    GEN_DEVICE_DNA : if (EN_DEVICE_DNA_G = true) generate
-      G_DS2411 : for i in 0 to 2 generate
+      G_DS2411 : for i in 0 to (NUM_DS2411_G-1) generate
         U_DS2411_N : entity surf.DS2411Core
           generic map (
             TPD_G        => TPD_G,
@@ -715,7 +729,7 @@ begin
 
    -- Special reset to the DS2411 to re-read in the event of a start up request event
    -- Start up (picoblaze) is disabling the ASIC digital monitors to ensure proper carrier ID readout
-   adcCardStartUp <= r.boardRegOut.startupAck or r.boardRegOut.startupFail;
+   adcCardStartUp <= r.boardRegOut.startupAck or r.boardRegOut.startupFail or pwrGood;
    U_adcCardStartUpRisingEdge : entity surf.SynchronizerEdge
    generic map (
       TPD_G       => TPD_G)
@@ -732,7 +746,7 @@ begin
       REF_CLK_FREQ_G    => 156.25E+6,       -- Reference Clock frequency, units of Hz
       REFRESH_RATE_G    => ite(SIMULATION_G, 1.0E+3, 1.0E+0),         -- Refresh rate, units of Hz
       CLK_LOWER_LIMIT_G => 40.0E+6,       -- Lower Limit for clock lock, units of Hz
-      CLK_UPPER_LIMIT_G => 250.0E+6,       -- Lower Limit for clock lock, units of Hz
+      CLK_UPPER_LIMIT_G => CLK_UPPER_LIMIT_G,       -- Lower Limit for clock lock, units of Hz
       COMMON_CLK_G      => true,  -- Set to true if (locClk = refClk) to save resources else false
       CNT_WIDTH_G       => 32)   -- Counters' width
    port map(

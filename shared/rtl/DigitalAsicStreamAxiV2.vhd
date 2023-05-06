@@ -75,7 +75,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
    -- makes the fifo input with 2B per stream
    constant AXI_STREAM_CONFIG_I_C : AxiStreamConfigType   := ssiAxiStreamConfig(2*LANES_NO_G, TKEEP_COMP_C);
    constant AXI_STREAM_CONFIG_W_C : AxiStreamConfigType   := ssiAxiStreamConfig(48, TKEEP_COMP_C);
-   constant AXI_STREAM_CONFIG_O_C : AxiStreamConfigType   := ssiAxiStreamConfig(16, TKEEP_COMP_C);--
+   constant AXI_STREAM_CONFIG_O_C : AxiStreamConfigType   := ssiAxiStreamConfig(16, TKEEP_COMP_C);
    constant VECTOR_OF_ONES_C  : slv(LANES_NO_G-1 downto 0) := (others => '1');
    constant VECTOR_OF_ZEROS_C : slv(LANES_NO_G-1 downto 0) := (others => '0');
    -- PGP3 protocol is using 128bit (check for global constant for this configuration)
@@ -176,9 +176,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
    attribute keep of dFifoEof    : signal is "true";
    attribute keep of dFifoSof    : signal is "true";
    attribute keep of dFifoValid  : signal is "true";
-   
-   
-   
+
 begin
    
    ----------------------------------------------------------------------------
@@ -245,7 +243,7 @@ begin
       generic map (
          GEN_SYNC_FIFO_G   => true,
          FWFT_EN_G         => true,
-         ADDR_WIDTH_G      => 12,
+         ADDR_WIDTH_G      => 9,
          DATA_WIDTH_G      => 19
          )
       port map (
@@ -381,7 +379,7 @@ begin
                v.txMaster.tData(31 downto  0) := x"0000" & x"00" & LANE_NO_G & VC_NO_G;
                v.txMaster.tData(63 downto 32) := r.acqNo(1)(31 downto 0);
                v.txMaster.tData(79 downto 64) := x"000" & '0' & ASIC_NO_G;
-               v.txMaster.tData(LANES_NO_G * 16 downto 80) := (others => '0');
+               v.txMaster.tData(95 downto 80) := x"0000";
                ssiSetUserSof(AXI_STREAM_CONFIG_I_C, v.txMaster, '1');
             end if;
              
@@ -517,7 +515,7 @@ begin
    -- gearbox 4/3 by double stream resizing 
    -- must be able to store whole frame if AXIS is muxed
    ----------------------------------------------------------------------------
-   AxisResize24to48_U: entity surf.AxiStreamFifoV2
+   DeserAxisDualClockFifo_U: entity surf.AxiStreamFifoV2
    generic map(
       GEN_SYNC_FIFO_G      => false,
       FIFO_ADDR_WIDTH_G    => 13,
@@ -558,6 +556,5 @@ begin
       mAxisMaster => mAxisMaster,
       mAxisSlave  => mAxisSlave
    );
-   
 
 end RTL;

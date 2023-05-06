@@ -1,3 +1,16 @@
+-------------------------------------------------------------------------------
+-- Company    : SLAC National Accelerator Laboratory
+-------------------------------------------------------------------------------
+-- Description: ASIC Deserializer Top-Level
+-------------------------------------------------------------------------------
+-- This file is part of 'epix-hr-leap-common' submodule.
+-- It is subject to the license terms in the LICENSE.txt file found in the
+-- top-level directory of this distribution and at:
+--    https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html.
+-- No part of 'epix-hr-leap-common', including this file,
+-- may be copied, modified, propagated, or distributed except according to
+-- the terms contained in the LICENSE.txt file.
+-------------------------------------------------------------------------------
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -7,11 +20,11 @@ use surf.StdRtlPkg.all;
 use surf.AxiStreamPkg.all;
 use surf.AxiLitePkg.all;
 
-library unisim;
-use unisim.vcomponents.all;
-
 library work;
 use work.AppPkg.all;
+
+library unisim;
+use unisim.vcomponents.all;
 
 entity AppDeser is
    generic (
@@ -20,6 +33,11 @@ entity AppDeser is
       AXIL_BASE_ADDR_G : slv(31 downto 0)
    );
    port(
+      -- Clocks and Resets
+      sspClk4x        : in  sl;
+      -- ASIC Ports
+      asicDataP       : in    Slv24Array(NUMBER_OF_ASICS_C - 1 downto 0);
+      asicDataM       : in    Slv24Array(NUMBER_OF_ASICS_C - 1 downto 0);
       -- AXI-Lite Interface (axilClk domain)
       axilClk         : in  sl;
       axilRst         : in  sl;
@@ -27,16 +45,9 @@ entity AppDeser is
       axilReadSlave   : out AxiLiteReadSlaveType;
       axilWriteMaster : in  AxiLiteWriteMasterType;
       axilWriteSlave  : out AxiLiteWriteSlaveType;
-
-      -- ASIC Ports
-      asicDataP       : in    Slv24Array(NUMBER_OF_ASICS_C - 1 downto 0);
-      asicDataM       : in    Slv24Array(NUMBER_OF_ASICS_C - 1 downto 0);
-
       -- SSP Interfaces (sspClk domain)
-      clk250          : in sl;
       sspClk          : in  sl;
       sspRst          : in  sl;
-
       -- Ssp data outputs
       sspLinkUp       : out Slv24Array(NUMBER_OF_ASICS_C - 1 downto 0);
       sspValid        : out Slv24Array(NUMBER_OF_ASICS_C - 1 downto 0);
@@ -47,15 +58,17 @@ entity AppDeser is
    );
 end AppDeser;
 
-
 architecture mapping of AppDeser is
   
+   constant NUM_AXIL_MASTERS_C : positive := NUMBER_OF_ASICS_C;
+
    constant XBAR_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUMBER_OF_ASICS_C-1 downto 0) := genAxiLiteConfig(NUMBER_OF_ASICS_C, AXIL_BASE_ADDR_G, 16, 12);
 
-   signal axilWriteMasters : AxiLiteWriteMasterArray(NUMBER_OF_ASICS_C-1 downto 0);
-   signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUMBER_OF_ASICS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_SLVERR_C);
-   signal axilReadMasters  : AxiLiteReadMasterArray(NUMBER_OF_ASICS_C-1 downto 0);
-   signal axilReadSlaves   : AxiLiteReadSlaveArray(NUMBER_OF_ASICS_C-1 downto 0)  := (others => AXI_LITE_READ_SLAVE_EMPTY_SLVERR_C);
+   signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
+   signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_SLVERR_C);
+   signal axilReadMasters  : AxiLiteReadMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
+   signal axilReadSlaves   : AxiLiteReadSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0)  := (others => AXI_LITE_READ_SLAVE_EMPTY_SLVERR_C);
+
    signal sspReset         : slv(NUMBER_OF_ASICS_C-1 downto 0);
 begin
 
@@ -89,6 +102,11 @@ begin
             SIMULATION_G   => SIMULATION_G
          )
          port map (
+
+            -- Asic Ports
+            asicDataP        => asicDataP(i),
+            asicDataM        => asicDataM(i),
+
             -- AXI-Lite Interface (axilClk domain)
             axilClk          => axilClk,
             axilRst          => axilRst,
@@ -96,12 +114,9 @@ begin
             axilReadSlave    => axilReadSlaves(i),
             axilWriteMaster  => axilWriteMasters(i),
             axilWriteSlave   => axilWriteSlaves(i),
-            
-            -- Asic Ports
-            asicDataP        => asicDataP(i),
-            asicDataM        => asicDataM(i),
 
-            clk250           => clk250,
+
+            sspClk4x         => sspClk4x,
             sspClk           => sspClk,
             sspRst           => sspReset(i),
 
@@ -123,6 +138,6 @@ begin
             rstOut => sspReset(i)
          );
 
-   end generate;
+   end generate GEN_VEC;
 
- end architecture;
+end mapping;
