@@ -30,14 +30,14 @@ entity AppDeser is
    generic (
       TPD_G            : time    := 1 ns;
       SIMULATION_G     : boolean := false;
-      AXIL_BASE_ADDR_G : slv(31 downto 0)
-   );
-   port(
+      AXIL_BASE_ADDR_G : slv(31 downto 0);
+      NUM_OF_LANES_G  : integer := 5);
+   port (
       -- Clocks and Resets
       sspClk4x        : in  sl;
       -- ASIC Ports
-      asicDataP       : in    Slv24Array(NUMBER_OF_ASICS_C - 1 downto 0);
-      asicDataM       : in    Slv24Array(NUMBER_OF_ASICS_C - 1 downto 0);
+      asicDataP       : in    Slv24Array(NUM_OF_LANES_G - 1 downto 0);
+      asicDataM       : in    Slv24Array(NUM_OF_LANES_G - 1 downto 0);
       -- AXI-Lite Interface (axilClk domain)
       axilClk         : in  sl;
       axilRst         : in  sl;
@@ -49,27 +49,26 @@ entity AppDeser is
       sspClk          : in  sl;
       sspRst          : in  sl;
       -- Ssp data outputs
-      sspLinkUp       : out Slv24Array(NUMBER_OF_ASICS_C - 1 downto 0);
-      sspValid        : out Slv24Array(NUMBER_OF_ASICS_C - 1 downto 0);
-      sspData         : out Slv16Array((NUMBER_OF_ASICS_C * 24)-1 downto 0);
-      sspSof          : out Slv24Array(NUMBER_OF_ASICS_C - 1 downto 0);
-      sspEof          : out Slv24Array(NUMBER_OF_ASICS_C - 1 downto 0);
-      sspEofe         : out Slv24Array(NUMBER_OF_ASICS_C - 1 downto 0)
-   );
+      sspLinkUp       : out Slv24Array(NUM_OF_LANES_G - 1 downto 0);
+      sspValid        : out Slv24Array(NUM_OF_LANES_G - 1 downto 0);
+      sspData         : out Slv16Array((NUM_OF_LANES_G * 24)-1 downto 0);
+      sspSof          : out Slv24Array(NUM_OF_LANES_G - 1 downto 0);
+      sspEof          : out Slv24Array(NUM_OF_LANES_G - 1 downto 0);
+      sspEofe         : out Slv24Array(NUM_OF_LANES_G - 1 downto 0));
 end AppDeser;
 
 architecture mapping of AppDeser is
   
-   constant NUM_AXIL_MASTERS_C : positive := NUMBER_OF_ASICS_C;
+   constant NUM_AXIL_MASTERS_C : positive := NUM_OF_LANES_G;
 
-   constant XBAR_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUMBER_OF_ASICS_C-1 downto 0) := genAxiLiteConfig(NUMBER_OF_ASICS_C, AXIL_BASE_ADDR_G, 16, 12);
+   constant XBAR_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_OF_LANES_G-1 downto 0) := genAxiLiteConfig(NUM_OF_LANES_G, AXIL_BASE_ADDR_G, 16, 12);
 
    signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
    signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_SLVERR_C);
    signal axilReadMasters  : AxiLiteReadMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
    signal axilReadSlaves   : AxiLiteReadSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0)  := (others => AXI_LITE_READ_SLAVE_EMPTY_SLVERR_C);
 
-   signal sspReset         : slv(NUMBER_OF_ASICS_C-1 downto 0);
+   signal sspReset         : slv(NUM_OF_LANES_G-1 downto 0);
 begin
 
    ---------------------------
@@ -79,9 +78,8 @@ begin
       generic map (
          TPD_G              => TPD_G,
          NUM_SLAVE_SLOTS_G  => 1,
-         NUM_MASTER_SLOTS_G => NUMBER_OF_ASICS_C,
-         MASTERS_CONFIG_G   => XBAR_CONFIG_C
-      )
+         NUM_MASTER_SLOTS_G => NUM_AXIL_MASTERS_C,
+         MASTERS_CONFIG_G   => XBAR_CONFIG_C)
       port map (
          sAxiWriteMasters(0) => axilWriteMaster,
          sAxiWriteSlaves(0)  => axilWriteSlave,
@@ -92,10 +90,9 @@ begin
          mAxiReadMasters     => axilReadMasters,
          mAxiReadSlaves      => axilReadSlaves,
          axiClk              => axilClk,
-         axiClkRst           => axilRst
-      );
+         axiClkRst           => axilRst);
 
-   GEN_VEC : for i in NUMBER_OF_ASICS_C - 1 downto 0 generate 
+   GEN_VEC : for i in NUM_OF_LANES_G - 1 downto 0 generate 
       U_Deser_Group : entity work.AppDeserGroup
          generic map (
             TPD_G          => TPD_G,

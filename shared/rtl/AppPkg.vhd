@@ -23,13 +23,11 @@ use surf.AxiLitePkg.all;
 package AppPkg is
 
    constant XIL_DEVICE_C               : string  := "ULTRASCALE_PLUS";
-   constant NUMBER_OF_ASICS_C          : natural := 4;
-   constant NUMBER_OF_LANES_C          : natural := 1; 
 
    type AppConfigType is record
       AppVersion           : slv(31 downto 0);
       powerEnable          : slv(3 downto 0);
-      asicMask             : slv(NUMBER_OF_ASICS_C-1 downto 0);
+      asicMask             : slv(31 downto 0);
       acqCnt               : slv(31 downto 0);
       requestStartupCal    : sl;
       startupAck           : sl;
@@ -52,6 +50,8 @@ package AppPkg is
       epixhrDbgSel2        => (others => '0'),
       epixhrDbgSel3        => (others => '0')
    );
+   
+  
 
 end package AppPkg;
 

@@ -65,7 +65,6 @@ entity AsicTop is
       l1Rst                : out   sl                    := '0';
       l1Feedbacks          : out   TriggerL1FeedbackArray(1 downto 0):= (others => TRIGGER_L1_FEEDBACK_INIT_C);
       l1Acks               : in    slv(1 downto 0);
-
       -- Event streams (eventClk domain)
       eventClk             : out   sl;
       eventRst             : out   sl;
@@ -75,13 +74,11 @@ entity AsicTop is
       eventTimingMsgMasters: in    AxiStreamMasterArray(1 downto 0);
       eventTimingMsgSlaves : out   AxiStreamSlaveArray(1 downto 0);
       clearReadout         : in    slv(1 downto 0);
-      
       -- ADC/DAC Debug Trigger Interface (axilClk domain)
       oscopeAcqStart       : out   slv(NUM_OF_PSCOPE_G - 1 downto 0);
       oscopeTrigBus        : out   slv(11 downto 0);
       slowAdcAcqStart      : out   slv(NUM_OF_SLOW_ADCS_G - 1 downto 0);
       dacTrig              : out   sl;
-
       -- SSP Interfaces (sspClk domain)
       sspClk               : in sl;
       sspRst               : in sl;
@@ -254,19 +251,15 @@ begin
       port map (
          axilClk          => axilClk,
          axilRst          => axilRst,
-
          -- AXI-Lite Register Interface (axiClk domain)
          axiReadMaster   => axilReadMasters(REGCTRL_AXI_INDEX_C),
          axiReadSlave    => axilReadSlaves(REGCTRL_AXI_INDEX_C),
          axiWriteMaster  => axilWriteMasters(REGCTRL_AXI_INDEX_C),
          axiWriteSlave   => axilWriteSlaves(REGCTRL_AXI_INDEX_C),
-
          -- Register Inputs/Outputs (axilClk domain)
          boardConfig    => boardConfigSig,
-
          -- 1-wire board ID interfaces
          serialIdIo     => serialNumber,
-
          -- ASICs acquisition signals
          acqStart       => acqStartSig,
          asicR0         => iAsicR0,
@@ -276,21 +269,17 @@ begin
          asicClkSyncEn  => iAsicClkSyncEn,
          asicGlblRst    => iAsicGlblRst,
          asicSync       => iAsicSync,
-
          -- sys clock signals (ASIC RD clock domain)
          sysRst         => sysRst,
          sysClk         => sysClk,
-
          saciReadoutReq => open,
          saciReadoutAck => saciPrepReadoutAck,
          errInhibit     => open,
          rdClkSel       => rdClkSel,
-
-         v1LinkUp => v1LinkUp,
-         v2LinkUp => v2LinkUp,
-
-         digOut   => digOut,
-         pwrGood  => pwrGood
+         v1LinkUp       => v1LinkUp,
+         v2LinkUp       => v2LinkUp,
+         digOut         => digOut,
+         pwrGood        => pwrGood
       );
 
    ---------------------
@@ -362,7 +351,8 @@ begin
                VC_NO_G             => "0000",
                LANE_NO_G           => toSlv(i, 4),
                ASIC_NO_G           => toSlv(i, 3),
-               LANES_NO_G          => 24
+               LANES_NO_G          => 24,
+               AXIL_ERR_RESP_G     => AXI_RESP_DECERR_C
                )
             port map(
                -- Deserialized data port
