@@ -20,17 +20,20 @@ use surf.StdRtlPkg.all;
 use surf.AxiStreamPkg.all;
 use surf.AxiLitePkg.all;
 
-
-use work.CorePkg.all;
+library epix_hr_core;
+use epix_hr_core.DacModelsPkg.all;
 
 library unisim;
 use unisim.vcomponents.all;
+
+use work.CorePkg.all;
 
 entity DacTop is
    generic (
       TPD_G            : time    := 1 ns;
       SIMULATION_G     : boolean := false;
-      AXIL_BASE_ADDR_G : slv(31 downto 0));
+      AXIL_BASE_ADDR_G : slv(31 downto 0);
+      SHARED_PORTS_G   : boolean := false);
    port (
       dacTrig         : in  sl;
       -- AXI-Lite Interface (axilClk domain)
@@ -40,37 +43,38 @@ entity DacTop is
       axilReadSlave   : out AxiLiteReadSlaveType;
       axilWriteMaster : in  AxiLiteWriteMasterType;
       axilWriteSlave  : out AxiLiteWriteSlaveType;
-      -------------------
-      --  Top Level Ports
-      -------------------
-      -- DAC Ports
-      -- Bias DAC
-      biasDacDin     : out sl;
-      biasDacSclk    : out sl;
-      biasDacCsb     : out sl;
-      biasDacClrb    : out sl;
+      -- Fast Dac Ports
+      fastDacCsL          : out sl;
+      fastDacSclk         : out sl;
+      fastDacDin          : out sl;
+      fastDacLoadL        : out sl;
 
-      -- High Speed DAC
-      hsDacSclk      : out sl;
-      hsDacDin       : out sl;
-      hsCsb          : out sl;
-      hsLdacb        : out sl
-      );
+      -- Slow Dac Ports
+      slowDacDin         : out sl;
+      slowDacSclk        : out sl;
+      slowDacCsL         : out sl;
+      slowDacClrL        : out sl);
 end DacTop;
 
 architecture mapping of DacTop is
 
-   constant NUM_DAC_AXIL_MASTERS_C : natural  := 2;
-   constant HS_DAC_INDEX_C         : natural  := 0;
-   constant BIAS_DAC_INDEX_C       : natural  := 1;
+   constant NUM_AXIL_MASTERS_C : positive := 3;
 
+   constant XBAR_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXIL_MASTERS_C, AXIL_BASE_ADDR_G, 20, 16);
 
-   constant DAC_XBAR_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_DAC_AXIL_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_DAC_AXIL_MASTERS_C, AXIL_BASE_ADDR_G, 20, 16);
+   signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
+   signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_SLVERR_C);
+   signal axilReadMasters  : AxiLiteReadMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
+   signal axilReadSlaves   : AxiLiteReadSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0)  := (others => AXI_LITE_READ_SLAVE_EMPTY_SLVERR_C);
 
-   signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_DAC_AXIL_MASTERS_C-1 downto 0);
-   signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_DAC_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_SLVERR_C);
-   signal axilReadMasters  : AxiLiteReadMasterArray(NUM_DAC_AXIL_MASTERS_C-1 downto 0);
-   signal axilReadSlaves   : AxiLiteReadSlaveArray(NUM_DAC_AXIL_MASTERS_C-1 downto 0)  := (others => AXI_LITE_READ_SLAVE_EMPTY_SLVERR_C);
+   signal WFDacDin  : sl;
+   signal WFDacSclk : sl;
+   signal WFDacClrL : sl;
+   signal WFdacCsL  : sl;
+
+   signal sDacSclk : sl;
+   signal sDacDin  : sl;
+      
 
 begin
 
@@ -81,8 +85,8 @@ begin
       generic map (
          TPD_G              => TPD_G,
          NUM_SLAVE_SLOTS_G  => 1,
-         NUM_MASTER_SLOTS_G => NUM_DAC_AXIL_MASTERS_C,
-         MASTERS_CONFIG_G   => DAC_XBAR_CONFIG_C)
+         NUM_MASTER_SLOTS_G => NUM_AXIL_MASTERS_C,
+         MASTERS_CONFIG_G   => XBAR_CONFIG_C)
       port map (
          sAxiWriteMasters(0) => axilWriteMaster,
          sAxiWriteSlaves(0)  => axilWriteSlave,
@@ -95,32 +99,54 @@ begin
          axiClk              => axilClk,
          axiClkRst           => axilRst);
 
+   --------------------------------------
+   -- Routing DAC signals to external IOs
+   --------------------------------------
+   fastDacCsL <= WFdacCsL;
+   slowDacDin  <= sDacDin;
+   slowDacSclk <= sDacSclk;   
+
+
+   G_SHARED : if (SHARED_PORTS_G = true) generate
+      -- shared DAC signal
+      fastDacSclk <= WFDacSclk when (WFdacCsL = '0') else sDacSclk;
+      fastDacDin  <=  WFDacDin when (WFdacCsL = '0') else sDacDin;
+   end generate G_SHARED;
+
+
+   G_NOT_SHARED : if (SHARED_PORTS_G = false) generate
+      -- shared DAC signal
+      fastDacSclk <= WFDacSclk;
+      fastDacDin  <=  WFDacDin;
+   end generate G_NOT_SHARED;
+
    ----------------------------
-   -- TO BE REPLACED WITH 20 Bit DAC DEVICE
+   -- High speed DAC (DAC8812C)
    ----------------------------
-   -- U_HS_DAC : entity epix_hr_leap_common.Dac5719
-   --    generic map (
-   --       TPD_G => TPD_G)
-   --    port map (
-   --       -- Master system clock
-   --       sysClk           => axilClk,
-   --       sysClkRst        => axilRst,
-   --       -- DAC Control Signals
-   --       dacDin           => hsDacDin,
-   --       dacSclk          => hsDacSclk,
-   --       dacCsL           => hsCsb,
-   --       dacLdacL         => hsLdacb,
-   --       dacClrL          => open,
-   --       -- external trigger
-   --       externalTrigger  => dacTrig,
-   --       -- AXI lite slave port for register access
-   --       axilClk          => axilClk,
-   --       axilRst          => axilRst,
-   --       sAxilWriteMaster => axilWriteMasters(HS_DAC_INDEX_C),
-   --       sAxilWriteSlave  => axilWriteSlaves(HS_DAC_INDEX_C),
-   --       sAxilReadMaster  => axilReadMasters(HS_DAC_INDEX_C),
-   --       sAxilReadSlave   => axilReadSlaves(HS_DAC_INDEX_C)
-   --    );
+   U_HS_DAC : entity epix_hr_core.DacWaveformGenAxi
+      generic map (
+         TPD_G => TPD_G,
+         DAC_MODEL_G => DAC5719,
+         DAC_DATA_WIDTH_G => 20 )
+      port map (
+         -- Master system clock
+         sysClk           => axilClk,
+         sysClkRst        => axilRst,
+         -- DAC Control Signals
+         dacDin           => WFDacDin,
+         dacSclk          => WFDacSclk,
+         dacCsL           => WFdacCsL,
+         dacLdacL         => fastDacLoadL,
+         dacClrL          => WFDacClrL,
+         -- external trigger
+         externalTrigger  => dacTrig,
+         -- AXI lite slave port for register access
+         axilClk          => axilClk,
+         axilRst          => axilRst,
+         sAxilWriteMaster => axilWriteMasters(2 downto 1),
+         sAxilWriteSlave  => axilWriteSlaves(2 downto 1),
+         sAxilReadMaster  => axilReadMasters(2 downto 1),
+         sAxilReadSlave   => axilReadSlaves(2 downto 1));
 
    --------------------------
    -- Low Speed DAC (MAX5443)
@@ -135,15 +161,14 @@ begin
          axilClk         => axilClk,
          axilRst         => axilRst,
          -- AXI-Lite Register Interface (axiClk domain)
-         axilReadMaster  => axilReadMasters(BIAS_DAC_INDEX_C),
-         axilReadSlave   => axilReadSlaves(BIAS_DAC_INDEX_C),
-         axilWriteMaster => axilWriteMasters(BIAS_DAC_INDEX_C),
-         axilWriteSlave  => axilWriteSlaves(BIAS_DAC_INDEX_C),
+         axilReadMaster  => axilReadMasters(0),
+         axilReadSlave   => axilReadSlaves(0),
+         axilWriteMaster => axilWriteMasters(0),
+         axilWriteSlave  => axilWriteSlaves(0),
          -- Guard ring DAC interfaces
-         dacSclk         => biasDacSclk,
-         dacDin          => biasDacDin,
-         dacCsb(0)       => biasDacCsb,
-         dacClrb         => biasDacClrb
-      );
+         dacSclk         => sDacSclk,
+         dacDin          => sDacDin,
+         dacCsb(0)       => slowDacCsL,
+         dacClrb         => slowDacClrL);
 
 end mapping;

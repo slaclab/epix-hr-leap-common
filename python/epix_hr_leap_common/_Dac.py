@@ -1,9 +1,9 @@
 #-----------------------------------------------------------------------------
-# This file is part of the 'epix-320k-M'. It is subject to
+# This file is part of the 'epix-hr-leap-common'. It is subject to
 # the license terms in the LICENSE.txt file found in the top-level directory
 # of this distribution and at:
 #    https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html.
-# No part of the 'epix-320k-M', including this file, may be
+# No part of the 'epix-hr-leap-common', including this file, may be
 # copied, modified, propagated, or distributed except according to the terms
 # contained in the LICENSE.txt file.
 #-----------------------------------------------------------------------------
@@ -11,6 +11,7 @@
 import pyrogue as pr
 
 import surf.devices.maxim as maxim
+import epix_hr_core       as epixHr
 
 class Dac(pr.Device):
     def __init__( self,**kwargs):
@@ -21,9 +22,10 @@ class Dac(pr.Device):
             numChip = 1,
         ))
 
-        self.add(fpga.HighSpeedDacRegisters(
+        self.add(epixHr.HighSpeedDacRegisters(
             name    = 'FastDac',
             offset  = 1*0x0001_0000,
+            DacModel= 'Max5719a'
         ))
 
         self.add(pr.MemoryDevice(

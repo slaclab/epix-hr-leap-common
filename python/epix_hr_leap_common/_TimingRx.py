@@ -1,9 +1,9 @@
 #-----------------------------------------------------------------------------
-# This file is part of the 'ePix-320k-M'. It is subject to
+# This file is part of the 'epix-hr-leap-common'. It is subject to
 # the license terms in the LICENSE.txt file found in the top-level directory
 # of this distribution and at:
 #    https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html.
-# No part of the 'Simple-PGPv4-KCU105-Example', including this file, may be
+# No part of the 'epix-hr-leap-common', including this file, may be
 # copied, modified, propagated, or distributed except according to the terms
 # contained in the LICENSE.txt file.
 #-----------------------------------------------------------------------------
@@ -11,6 +11,7 @@
 import pyrogue        as pr
 import LclsTimingCore as timing
 import l2si_core      as l2si
+import time
 
 class TimingRx(pr.Device):
     def __init__( self,sim=False,**kwargs):
@@ -77,3 +78,9 @@ class TimingRx(pr.Device):
             self.XpmMiniWrapper.XpmMini.Link.set(0)
             self.XpmMiniWrapper.XpmMini.Config_L0Select_RateSel.set(5)
             self.XpmMiniWrapper.XpmMini.Config_L0Select_Enabled.set(False)
+
+        @self.command(description="GTX TX Reset")
+        def TimingTxReset():
+            print ( 'TimingTxReset()' )
+            self.TxDbgPhyRst.set(0x1)
+            self.TxDbgPhyRst.set(0x0)
