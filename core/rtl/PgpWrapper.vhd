@@ -323,7 +323,7 @@ begin
          AXI_STREAM_CONFIG_G => PGP4_AXIS_CONFIG_C,
          SLAVE_READY_EN_G    => SIMULATION_G)
       port map (
-         -- Streaming Data Interface - WHICH LANE? 0?
+         -- Streaming Data Interface
          axisClk     => pgpClk(5),
          axisRst     => pgpRst(5),
          sAxisMaster => pgpRxMasters(1),
