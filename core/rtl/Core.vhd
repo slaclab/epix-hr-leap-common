@@ -23,6 +23,7 @@ use surf.Pgp4Pkg.all;
 use surf.AxiPkg.all;
 use surf.I2cPkg.all;
 use surf.SsiCmdMasterPkg.all;
+use surf.SsiPkg.all;
 
 library unisim;
 use unisim.vcomponents.all;
