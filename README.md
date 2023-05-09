@@ -1,5 +1,7 @@
 # epix-hr-leap-common
 
+Common code between ePixHR10k-2M and ePix-hr-m-320k
+
 # Before you clone the GIT repository
 
 1) Create a github account:
@@ -16,3 +18,6 @@
 
 # Clone the GIT repository
 ```$ git clone --recursive git@github.com:slaclab/epix-hr-leap-common```
+
+
+
