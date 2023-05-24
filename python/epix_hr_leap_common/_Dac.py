@@ -25,7 +25,8 @@ class Dac(pr.Device):
         self.add(epixHr.HighSpeedDacRegisters(
             name    = 'FastDac',
             offset  = 1*0x0001_0000,
-            DacModel= 'Max5719a'
+            DacModel= 'Max5719a',
+            MaximumDacValue = 1048576
         ))
 
         self.add(pr.MemoryDevice(
