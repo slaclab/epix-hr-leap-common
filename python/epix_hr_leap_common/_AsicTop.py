@@ -16,12 +16,13 @@ import epix_hr_core as ePixHrCore
 import epix_hr_leap_common as ePixHrleapCommon
 
 class AsicTop(pr.Device):
-    def __init__( self,asicStreams=5, debugChEnum=[], **kwargs):
+    def __init__( self,asicStreams=5, debugChEnum=[], snEnum={}, **kwargs):
         super().__init__(**kwargs)
 
         self.add(ePixHrleapCommon.RegisterControlDualClock(
             offset = 0x0000_0000,
-            debugChEnum=debugChEnum
+            debugChEnum=debugChEnum,
+            snEnum=snEnum
         ))
 
         self.add(ePixHrCore.TriggerRegisters(
