@@ -119,7 +119,7 @@ entity AsicTop is
       asicClkSyncEn        : out   sl;
 
 
-      serialNumber         : inout slv(2 downto 0);
+      serialNumber         : inout slv(NUM_DS2411_G-1 downto 0);
       
       -- TTL external input triggers
       runTrigger      : in  sl;
