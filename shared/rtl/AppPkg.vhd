@@ -30,8 +30,7 @@ package AppPkg is
       asicMask             : slv(31 downto 0);
       acqCnt               : slv(31 downto 0);
       requestStartupCal    : sl;
-      startupAck           : sl;
-      startupFail          : sl;
+      getSN                : sl;
       epixhrDbgSel1        : slv(5 downto 0);
       epixhrDbgSel2        : slv(5 downto 0);
       epixhrDbgSel3        : slv(3 downto 0);
@@ -44,8 +43,7 @@ package AppPkg is
       asicMask             => (others => '0'),
       acqCnt               => (others => '0'),
       requestStartupCal    => '1',
-      startupAck           => '0',
-      startupFail          => '0',
+      getSN                => '0',
       epixhrDbgSel1        => (others => '0'),
       epixhrDbgSel2        => (others => '0'),
       epixhrDbgSel3        => (others => '0')

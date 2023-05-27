@@ -31,7 +31,6 @@ entity RegisterControlDualClock is
    generic (
       TPD_G             : time               := 1 ns;
       SIMULATION_G      : boolean            := false;
-      EN_DEVICE_DNA_G   : boolean            := true;
       CLK_PERIOD_G      : real               := 10.0e-9;
       NUM_DS2411_G      : positive           := 3;
       CLK_UPPER_LIMIT_G : real               := 320.0E+6;
@@ -241,7 +240,7 @@ architecture rtl of RegisterControlDualClock is
    signal asicRefClockFreq : slv(31 downto 0);
 
    signal digOutSync : slv(1 downto 0);
-   
+   signal pwrGoodUpEdge     : sl;
 begin
 
    axiReset <= sysRst or r.usrRst;
@@ -316,8 +315,7 @@ begin
       axiSlaveRegister(regCon,  x"025C",  0, v.boardRegOut.epixhrDbgSel2);
       axiSlaveRegister(regCon,  x"0260",  0, v.boardRegOut.epixhrDbgSel3);
       axiSlaveRegister(regCon,  x"0264",  0, v.boardRegOut.requestStartupCal);
-      axiSlaveRegister(regCon,  x"0264",  1, v.boardRegOut.startupAck);
-      axiSlaveRegister(regCon,  x"0264",  2, v.boardRegOut.startupFail);
+      axiSlaveRegister(regCon,  x"0264",  1, v.boardRegOut.getSN);
       axiSlaveRegisterR(regCon, x"0268",  0, r.asicRefClockFreq);
       axiSlaveRegisterR(regCon, x"026C",  3, v.v1LinkUp);
       axiSlaveRegisterR(regCon, x"026C",  4, v.v2LinkUp);
@@ -703,33 +701,28 @@ begin
    -----------------------------------------------
    -- Serial IDs: FPGA Device DNA + DS2411's
    -----------------------------------------------  
-   GEN_DEVICE_DNA : if (EN_DEVICE_DNA_G = true) generate
-      G_DS2411 : for i in 0 to (NUM_DS2411_G-1) generate
-        U_DS2411_N : entity surf.DS2411Core
-          generic map (
-            TPD_G        => TPD_G,
-            CLK_PERIOD_G => CLK_PERIOD_G
-            )
-          port map (
-            clk       => axilClk,
-            rst       => chipIdRst,
-            fdSerSdio => serialIdIo(i),
-            fdValue   => idValues(i),
-            fdValid   => idValids(i)
-          );
-      end generate;
-   end generate GEN_DEVICE_DNA;
-   
-   BYP_DEVICE_DNA : if (EN_DEVICE_DNA_G = false) generate
-      idValids(0) <= '1';
-      idValues(0) <= (others=>'0');
-   end generate BYP_DEVICE_DNA;   
+
+   G_DS2411 : for i in 0 to (NUM_DS2411_G-1) generate
+      U_DS2411_N : entity surf.DS2411Core
+         generic map (
+         TPD_G        => TPD_G,
+         CLK_PERIOD_G => CLK_PERIOD_G
+         )
+         port map (
+         clk       => axilClk,
+         rst       => chipIdRst,
+         fdSerSdio => serialIdIo(i),
+         fdValue   => idValues(i),
+         fdValid   => idValids(i)
+         );
+   end generate G_DS2411;
+ 
       
    chipIdRst <= axiReset or adcCardStartUpEdge;
 
    -- Special reset to the DS2411 to re-read in the event of a start up request event
    -- Start up (picoblaze) is disabling the ASIC digital monitors to ensure proper carrier ID readout
-   adcCardStartUp <= r.boardRegOut.startupAck or r.boardRegOut.startupFail or pwrGood;
+   adcCardStartUp <= r.boardRegOut.getSN or pwrGoodUpEdge;
    U_adcCardStartUpRisingEdge : entity surf.SynchronizerEdge
    generic map (
       TPD_G       => TPD_G)
@@ -738,6 +731,15 @@ begin
       dataIn      => adcCardStartUp,
       risingEdge  => adcCardStartUpEdge
       );
+
+      U_powerGoodRisingEdge : entity surf.SynchronizerEdge
+      generic map (
+         TPD_G       => TPD_G)
+      port map (
+         clk         => axilClk,
+         dataIn      => pwrGood,
+         risingEdge  => pwrGoodUpEdge
+         );
 
    U_ClockFreqMon : entity surf.SyncClockFreq 
    generic map(

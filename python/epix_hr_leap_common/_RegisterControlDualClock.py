@@ -78,7 +78,7 @@ class RegisterControlDualClock(pr.Device):
       self.add(pr.RemoteVariable(name='SaciSyncDelay',   description='SaciSyncDelay',     offset=0x0000023C, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
       self.add(pr.RemoteVariable(name='SaciSyncWidth',   description='SaciSyncWidth',     offset=0x00000240, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
 
-      self.add(pr.RemoteVariable(name='AcqCnt',          description='AcqCnt',            offset=0x00000244, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
+      self.add(pr.RemoteVariable(name='AcqCnt',          description='AcqCnt',            offset=0x00000244, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RO', pollInterval = 1))
       self.add(pr.RemoteVariable(name='SaciPrepRdoutCnt',description='SaciPrepRdoutCnt',  offset=0x00000248, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
       self.add(pr.RemoteVariable(name='ResetCounters',   description='ResetCounters',     offset=0x0000024C, bitSize=1,  bitOffset=0, base=pr.Bool, mode='RW'))
       self.add((
@@ -93,8 +93,7 @@ class RegisterControlDualClock(pr.Device):
       self.add(pr.RemoteVariable(name='DebugSel1',       description='Debug Sel 1',       offset=0x0000025C, bitSize=6, bitOffset=0,  mode='RW', enum=debugChEnum[1]))
       self.add((
          pr.RemoteVariable(name='StartupReq',            description='AdcStartup',        offset=0x00000264, bitSize=1, bitOffset=0, base=pr.Bool, mode='RW'),
-         pr.RemoteVariable(name='StartupAck',            description='AdcStartup',        offset=0x00000264, bitSize=1, bitOffset=1, base=pr.Bool, mode='RW'),
-         pr.RemoteVariable(name='StartupFail',           description='AdcStartup',        offset=0x00000264, bitSize=1, bitOffset=2, base=pr.Bool, mode='RW')))
+         pr.RemoteVariable(name='getSerialNumbers',      description='Get serial number', offset=0x00000264, bitSize=1, bitOffset=1, base=pr.Bool, mode='RW')))
       self.add((
          pr.RemoteVariable(name='timingV1LinkUp',              description='Timing Status',     offset=0x0000026C, bitSize=1, bitOffset=3, base=pr.Bool, mode='RO'),
          pr.RemoteVariable(name='timingV2LinkUp',              description='Timing Status',     offset=0x0000026C, bitSize=1, bitOffset=4, base=pr.Bool, mode='RO'),
