@@ -31,7 +31,7 @@ entity RegisterControlDualClock is
    generic (
       TPD_G             : time               := 1 ns;
       SIMULATION_G      : boolean            := false;
-      CLK_PERIOD_G      : real               := 10.0e-9;
+      SN_CLK_PERIOD_G      : real               := 10.0e-9;
       NUM_DS2411_G      : positive           := 3;
       CLK_UPPER_LIMIT_G : real               := 320.0E+6;
       BUILD_INFO_G      : BuildInfoType
@@ -706,7 +706,7 @@ begin
       U_DS2411_N : entity surf.DS2411Core
          generic map (
          TPD_G        => TPD_G,
-         CLK_PERIOD_G => CLK_PERIOD_G
+         CLK_PERIOD_G => SN_CLK_PERIOD_G
          )
          port map (
          clk       => axilClk,

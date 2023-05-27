@@ -42,7 +42,7 @@ entity AsicTop is
    generic (
       TPD_G                   : time          := 1 ns;
       SIMULATION_G            : boolean       := false;
-      CLK_PERIOD_G            : real          := 156.25E+6;
+      SN_CLK_PERIOD_G         : real          := 10.0e-9;
       AXIL_BASE_ADDR_G        : slv(31 downto 0);
       NUM_OF_PSCOPE_G         : integer       := 4;
       NUM_DS2411_G            : integer       := 3;
@@ -244,7 +244,7 @@ begin
    U_RegCtrl : entity work.RegisterControlDualClock
       generic map (
          TPD_G           => TPD_G,
-         CLK_PERIOD_G    => CLK_PERIOD_G,
+         SN_CLK_PERIOD_G    => SN_CLK_PERIOD_G,
          NUM_DS2411_G    => NUM_DS2411_G,
          BUILD_INFO_G    => BUILD_INFO_G
       )
