@@ -18,8 +18,8 @@ class AsicTop(pr.Device):
     def __init__( self,asicStreams=5, debugChEnum=[], snEnum={}, **kwargs):
         super().__init__(**kwargs)
 
-	DigitalAsicStreamAxiOffset = 0x0020_0000
-	AxiStreamBatcherEventBuilderOffset = DigitalAsicStreamAxiOffset + 0x0010_0000 * asicStreams
+        DigitalAsicStreamAxiOffset = 0x0020_0000
+        AxiStreamBatcherEventBuilderOffset = DigitalAsicStreamAxiOffset + 0x0010_0000 * asicStreams
 
         self.add(ePixHrleapCommon.RegisterControlDualClock(
             offset = 0x0000_0000,

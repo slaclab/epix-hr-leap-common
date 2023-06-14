@@ -10,8 +10,6 @@
 
 import pyrogue as pr
 
-import ePix320kM as fpga
-
 class RegisterControlDualClock(pr.Device):
    def __init__(self, debugChEnum=[], snEnum={}, **kwargs):
       """Create the configuration device for HR Gen1 core FPGA registers"""
