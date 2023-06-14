@@ -12,7 +12,6 @@
 -- the terms contained in the LICENSE.txt file.
 -------------------------------------------------------------------------------
 
-
 library ieee;
 use ieee.std_logic_1164.all;
 
@@ -42,10 +41,10 @@ entity AsicTop is
    generic (
       TPD_G                   : time          := 1 ns;
       SIMULATION_G            : boolean       := false;
-      EN_DEVICE_DNA_G         : boolean       := true;
-      CLK_PERIOD_G            : real          := 156.25E+6;
+      SN_CLK_PERIOD_G         : real          := 10.0e-9;
       AXIL_BASE_ADDR_G        : slv(31 downto 0);
       NUM_OF_PSCOPE_G         : integer       := 4;
+      NUM_DS2411_G            : integer       := 3;
       NUM_OF_SLOW_ADCS_G      : integer       := 2;
       NUM_LANES_G             : integer       := 5; 
       BUILD_INFO_G            : BuildInfoType
@@ -119,7 +118,7 @@ entity AsicTop is
       asicClkSyncEn        : out   sl;
 
 
-      serialNumber         : inout slv(2 downto 0);
+      serialNumber         : inout slv(NUM_DS2411_G-1 downto 0);
       
       -- TTL external input triggers
       runTrigger      : in  sl;
@@ -210,11 +209,11 @@ begin
    eventClk         <= axilClk;
    eventRst         <= axilRst;
 
+   dacTrig          <= acqStartSig;
    acqStart         <= acqStartSig;
-   oscopeAcqStart   <= (others => '0');
-   oscopeTrigBus    <= (others => '0');
-   slowAdcAcqStart  <= (others => '0');
-   dacTrig          <= '0';
+   oscopeAcqStart   <= (others => acqStartSig);
+   oscopeTrigBus    <= (others => acqStartSig);
+   slowAdcAcqStart  <= (others => acqStartSig);
    timingRunTrigger <= triggerData(0).valid and triggerData(0).l0Accept;
    timingDaqTrigger <= triggerData(1).valid and triggerData(1).l0Accept;
 
@@ -244,8 +243,8 @@ begin
    U_RegCtrl : entity work.RegisterControlDualClock
       generic map (
          TPD_G           => TPD_G,
-         EN_DEVICE_DNA_G => EN_DEVICE_DNA_G,
-         CLK_PERIOD_G    => CLK_PERIOD_G,
+         SN_CLK_PERIOD_G    => SN_CLK_PERIOD_G,
+         NUM_DS2411_G    => NUM_DS2411_G,
          BUILD_INFO_G    => BUILD_INFO_G
       )
       port map (

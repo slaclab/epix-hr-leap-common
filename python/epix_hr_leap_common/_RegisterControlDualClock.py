@@ -10,10 +10,8 @@
 
 import pyrogue as pr
 
-import ePix320kM as fpga
-
 class RegisterControlDualClock(pr.Device):
-   def __init__(self, debugChEnum=[],  **kwargs):
+   def __init__(self, debugChEnum=[], snEnum={}, **kwargs):
       """Create the configuration device for HR Gen1 core FPGA registers"""
       """Version 1 is for ASIC 0.1 and test ADC ASIC"""
       """Version 2 is for ASIC 0.2 whee ClkSyncEn has been added"""
@@ -28,15 +26,19 @@ class RegisterControlDualClock(pr.Device):
       # The setMemBase call can be used to update the memBase for this Device. All sub-devices and local
       # blocks will be updated.
       
+      if snEnum == {} :
+         snEnum = {0: 'DigIDLow', 1: 'DigIDHigh', 2: 'AnalogIDLow', 3: 'AnalogIDHigh',
+                   4: 'CarrierIDLow', 5: 'CarrierIDHigh'}
+         
       #Setup registers & variables
       
       self.add(pr.RemoteVariable(name='Version',         description='Version',           offset=0x00000000, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}',  verify = False, mode='RO'))
-      self.add(pr.RemoteVariable(name='DigIDLow',        description='DigIDLow',          offset=0x00000004, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
-      self.add(pr.RemoteVariable(name='DigIDHigh',       description='DigIDHigh',         offset=0x00000008, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
-      self.add(pr.RemoteVariable(name='AnalogIDLow',     description='AnalogIDLow',       offset=0x0000000C, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
-      self.add(pr.RemoteVariable(name='AnalogIDHigh',    description='AnalogIDHigh',      offset=0x00000010, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
-      self.add(pr.RemoteVariable(name='CarrierIDLow',    description='CarrierIDLow',      offset=0x00000014, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
-      self.add(pr.RemoteVariable(name='CarrierIDHigh',   description='CarrierIDHigh',     offset=0x00000018, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
+      self.add(pr.RemoteVariable(name=snEnum[0],         description=snEnum[0],           offset=0x00000004, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
+      self.add(pr.RemoteVariable(name=snEnum[1],         description=snEnum[1],           offset=0x00000008, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
+      self.add(pr.RemoteVariable(name=snEnum[2],         description=snEnum[2],           offset=0x0000000C, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
+      self.add(pr.RemoteVariable(name=snEnum[3],         description=snEnum[3],           offset=0x00000010, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
+      self.add(pr.RemoteVariable(name=snEnum[4],         description=snEnum[4],           offset=0x00000014, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
+      self.add(pr.RemoteVariable(name=snEnum[5],         description=snEnum[5],           offset=0x00000018, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
       self.add(pr.RemoteVariable(name='GlblRstPolarityN',description='GlblRstPolarityN (active low)',   offset=0x00000100, bitSize=1,  bitOffset=0, base=pr.Bool, mode='RW'))
       self.add(pr.RemoteVariable(name='ClkSyncEn',       description='Enables clock to be available inside ASIC.',   offset=0x00000100, bitSize=1,  bitOffset=1, base=pr.Bool, mode='RW'))
       self.add(pr.RemoteVariable(name='RoLogicRstN',     description='Enables digital rodout clock. (Active low)',   offset=0x00000100, bitSize=1,  bitOffset=2, base=pr.Bool, mode='RW'))
@@ -78,7 +80,7 @@ class RegisterControlDualClock(pr.Device):
       self.add(pr.RemoteVariable(name='SaciSyncDelay',   description='SaciSyncDelay',     offset=0x0000023C, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
       self.add(pr.RemoteVariable(name='SaciSyncWidth',   description='SaciSyncWidth',     offset=0x00000240, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
 
-      self.add(pr.RemoteVariable(name='AcqCnt',          description='AcqCnt',            offset=0x00000244, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
+      self.add(pr.RemoteVariable(name='AcqCnt',          description='AcqCnt',            offset=0x00000244, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RO', pollInterval = 1))
       self.add(pr.RemoteVariable(name='SaciPrepRdoutCnt',description='SaciPrepRdoutCnt',  offset=0x00000248, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
       self.add(pr.RemoteVariable(name='ResetCounters',   description='ResetCounters',     offset=0x0000024C, bitSize=1,  bitOffset=0, base=pr.Bool, mode='RW'))
       self.add((
@@ -93,8 +95,7 @@ class RegisterControlDualClock(pr.Device):
       self.add(pr.RemoteVariable(name='DebugSel1',       description='Debug Sel 1',       offset=0x0000025C, bitSize=6, bitOffset=0,  mode='RW', enum=debugChEnum[1]))
       self.add((
          pr.RemoteVariable(name='StartupReq',            description='AdcStartup',        offset=0x00000264, bitSize=1, bitOffset=0, base=pr.Bool, mode='RW'),
-         pr.RemoteVariable(name='StartupAck',            description='AdcStartup',        offset=0x00000264, bitSize=1, bitOffset=1, base=pr.Bool, mode='RW'),
-         pr.RemoteVariable(name='StartupFail',           description='AdcStartup',        offset=0x00000264, bitSize=1, bitOffset=2, base=pr.Bool, mode='RW')))
+         pr.RemoteVariable(name='getSerialNumbers',      description='Get serial number', offset=0x00000264, bitSize=1, bitOffset=1, base=pr.Bool, mode='RW')))
       self.add((
          pr.RemoteVariable(name='timingV1LinkUp',              description='Timing Status',     offset=0x0000026C, bitSize=1, bitOffset=3, base=pr.Bool, mode='RO'),
          pr.RemoteVariable(name='timingV2LinkUp',              description='Timing Status',     offset=0x0000026C, bitSize=1, bitOffset=4, base=pr.Bool, mode='RO'),
