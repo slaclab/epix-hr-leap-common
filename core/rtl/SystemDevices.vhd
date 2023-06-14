@@ -34,6 +34,7 @@ entity SystemDevices is
       TPD_G            : time             := 1 ns;
       SIMULATION_G     : boolean          := false;
       BUILD_INFO_G     : BuildInfoType;
+      MEMORY_INIT_FILE_G : string := "none";
       AXIL_BASE_ADDR_G : slv(31 downto 0) := (others => '0'));
    port (
       -- AXI-Lite Interface
@@ -235,7 +236,7 @@ begin
       U_PLL_SPI : entity surf.Si5345
          generic map (
             TPD_G              => TPD_G,
-            MEMORY_INIT_FILE_G => "EPixHRM320KPllConfigClk5EnClk32.5V-Registers.mem",
+            MEMORY_INIT_FILE_G => MEMORY_INIT_FILE_G,
             CLK_PERIOD_G       => AXIL_CLK_PERIOD_C,
             SPI_SCLK_PERIOD_G  => (1/10.0E+6))  -- 1/(10 MHz SCLK)
          port map (

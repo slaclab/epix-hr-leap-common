@@ -38,7 +38,8 @@ entity Core is
       SIMULATION_G         : boolean         := false;
       NUM_OF_LANES_G       : integer         := 4;
       NUM_OF_PSCOPE_G      : integer          := 4;
-      NUM_OF_SLOW_ADCS_G   : integer   := 4
+      NUM_OF_SLOW_ADCS_G   : integer          := 4;
+      MEMORY_INIT_FILE_G   : string           := "none"
       );
    port (
       axilClk         : out   sl;
@@ -371,10 +372,11 @@ architecture rtl of Core is
    ----------------------------------
    U_SysDev : entity work.SystemDevices
       generic map (
-         TPD_G            => TPD_G,
-         SIMULATION_G     => SIMULATION_G,
-         BUILD_INFO_G     => BUILD_INFO_G,
-         AXIL_BASE_ADDR_G => XBAR_CONFIG_C(SYSDEV_INDEX_C).baseAddr)
+         TPD_G              => TPD_G,
+         SIMULATION_G       => SIMULATION_G,
+         BUILD_INFO_G       => BUILD_INFO_G,
+         AXIL_BASE_ADDR_G   => XBAR_CONFIG_C(SYSDEV_INDEX_C).baseAddr,
+         MEMORY_INIT_FILE_G => MEMORY_INIT_FILE_G)
       port map(
          -- AXI-Lite Interface
          axilClk         => axilClock,
