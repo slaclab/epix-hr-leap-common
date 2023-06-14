@@ -51,7 +51,7 @@ entity AppDeser is
       -- Ssp data outputs
       sspLinkUp       : out Slv24Array(NUM_OF_LANES_G - 1 downto 0);
       sspValid        : out Slv24Array(NUM_OF_LANES_G - 1 downto 0);
-      sspData         : out Slv16Array(((NUM_OF_LANES_G - 1) * 24)-1 downto 0);
+      sspData         : out Slv16Array((NUM_OF_LANES_G * 24)-1 downto 0);
       sspSof          : out Slv24Array(NUM_OF_LANES_G - 1 downto 0);
       sspEof          : out Slv24Array(NUM_OF_LANES_G - 1 downto 0);
       sspEofe         : out Slv24Array(NUM_OF_LANES_G - 1 downto 0));
