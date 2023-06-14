@@ -99,8 +99,7 @@ begin
       generic map (
          TPD_G            => TPD_G,
          SIMULATION_G     => SIMULATION_G,
-         NUM_LANE_G       => 24
-      )
+         NUM_LANE_G       => 24)
       port map (
          -- Deserialization Interface (deserClk domain)
          deserClk        => sspClk,

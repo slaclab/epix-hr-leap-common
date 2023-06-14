@@ -51,7 +51,7 @@ entity AppDeser is
       -- Ssp data outputs
       sspLinkUp       : out Slv24Array(NUM_OF_LANES_G - 1 downto 0);
       sspValid        : out Slv24Array(NUM_OF_LANES_G - 1 downto 0);
-      sspData         : out Slv16Array((NUM_OF_LANES_G * 24)-1 downto 0);
+      sspData         : out Slv16Array(((NUM_OF_LANES_G - 1) * 24)-1 downto 0);
       sspSof          : out Slv24Array(NUM_OF_LANES_G - 1 downto 0);
       sspEof          : out Slv24Array(NUM_OF_LANES_G - 1 downto 0);
       sspEofe         : out Slv24Array(NUM_OF_LANES_G - 1 downto 0));
@@ -61,7 +61,7 @@ architecture mapping of AppDeser is
   
    constant NUM_AXIL_MASTERS_C : positive := NUM_OF_LANES_G;
 
-   constant XBAR_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_OF_LANES_G-1 downto 0) := genAxiLiteConfig(NUM_OF_LANES_G, AXIL_BASE_ADDR_G, 16, 12);
+   constant XBAR_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXIL_MASTERS_C, AXIL_BASE_ADDR_G, 16, 12);
 
    signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
    signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_SLVERR_C);
@@ -92,12 +92,12 @@ begin
          axiClk              => axilClk,
          axiClkRst           => axilRst);
 
-   GEN_VEC : for i in NUM_OF_LANES_G - 1 downto 0 generate 
+   GEN_VEC : for i in NUM_OF_LANES_G - 1 downto 0 generate
+
       U_Deser_Group : entity work.AppDeserGroup
          generic map (
             TPD_G          => TPD_G,
-            SIMULATION_G   => SIMULATION_G
-         )
+            SIMULATION_G   => SIMULATION_G)
          port map (
 
             -- Asic Ports
@@ -127,13 +127,11 @@ begin
 
       U_reset : entity surf.RstPipeline
          generic map (
-            TPD_G => TPD_G
-         )
+            TPD_G => TPD_G)
          port map (
             clk    => sspClk,
             rstIn  => sspRst,
-            rstOut => sspReset(i)
-         );
+            rstOut => sspReset(i));
 
    end generate GEN_VEC;
 
