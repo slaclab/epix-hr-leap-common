@@ -174,6 +174,23 @@ architecture mapping of TimingRx is
    signal rxDbgRst       : sl;
    signal txDbgPhyRst    : sl;
    signal txDbgPhyPllRst : sl;
+   
+   attribute keep : string;
+   
+   attribute keep of gtRxData : signal is "true";
+   attribute keep of rxData   : signal is "true";
+
+   attribute keep of gtRxDataK : signal is "true";
+   attribute keep of rxDataK   : signal is "true";
+
+   attribute keep of gtRxDispErr : signal is "true";
+   attribute keep of rxDispErr   : signal is "true";
+
+   attribute keep of gtRxDecErr : signal is "true";
+   attribute keep of rxDecErr   : signal is "true";
+
+   attribute keep of gtRxStatus : signal is "true";
+   attribute keep of rxStatus   : signal is "true";
 
 begin
 
