@@ -192,6 +192,10 @@ architecture mapping of TimingRx is
    attribute keep of gtRxStatus : signal is "true";
    attribute keep of rxStatus   : signal is "true";
 
+   attribute keep of gtTxControl: signal is "true";
+
+   
+
 begin
 
    U_gtRefClk : IBUFDS_GTE4
@@ -286,7 +290,7 @@ begin
    txDbgPhyRst    <= writeReg(0)(3) or axilRst;
    txDbgPhyPllRst <= writeReg(0)(4) or axilRst;
 
-   rxUsrReset     <= rxDbgRst or not rxStatus.resetDone;
+   rxUsrReset     <= rxDbgRst; -- or not rxStatus.resetDone;
 
    v1LinkUp       <= appTimingBus.v1.linkUp;
    v2LinkUp       <= appTimingBus.v2.linkUp;
