@@ -192,7 +192,7 @@ architecture mapping of TimingRx is
    attribute keep of gtRxStatus : signal is "true";
    attribute keep of rxStatus   : signal is "true";
 
-   attribute keep of gtTxControl: signal is "true";
+   attribute keep of gtRxControl: signal is "true";
 
    
 
