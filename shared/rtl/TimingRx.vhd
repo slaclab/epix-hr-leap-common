@@ -174,6 +174,11 @@ architecture mapping of TimingRx is
    signal rxDbgRst       : sl;
    signal txDbgPhyRst    : sl;
    signal txDbgPhyPllRst : sl;
+
+   signal rxUsrClk_ClockFreq   : slv(31 downto 0);
+   signal gtRxOutClk_ClockFreq : slv(31 downto 0);
+   signal txUsrClk_ClockFreq   : slv(31 downto 0);
+
    
    attribute keep : string;
    
@@ -194,7 +199,9 @@ architecture mapping of TimingRx is
 
    attribute keep of gtRxControl: signal is "true";
 
-   
+   attribute keep of rxUsrClk_ClockFreq: signal is "true";
+   attribute keep of gtRxOutClk_ClockFreq: signal is "true";
+   attribute keep of txUsrClk_ClockFreq: signal is "true"; 
 
 begin
 
@@ -532,4 +539,61 @@ begin
          eventTimingMsgMasters       => eventTimingMsgMasters,      -- [out]
          eventTimingMsgSlaves        => eventTimingMsgSlaves);      -- [in]
 
+
+   U_ClockFreqMonrxUsrClk : entity surf.SyncClockFreq 
+   generic map(
+      TPD_G             => TPD_G,
+      USE_DSP_G         => "no",   -- "no" for no DSP implementation, "yes" to use DSP slices
+      REF_CLK_FREQ_G    => 156.25E+6,       -- Reference Clock frequency, units of Hz
+      REFRESH_RATE_G    => ite(SIMULATION_G, 1.0E+3, 1.0E+0),         -- Refresh rate, units of Hz
+      CLK_LOWER_LIMIT_G => 40.0E+6,       -- Lower Limit for clock lock, units of Hz
+      CLK_UPPER_LIMIT_G => 400.0E+6,       -- Lower Limit for clock lock, units of Hz
+      COMMON_CLK_G      => true,  -- Set to true if (locClk = refClk) to save resources else false
+      CNT_WIDTH_G       => 32)   -- Counters' width
+   port map(
+      -- Frequency Measurement and Monitoring Outputs (locClk domain)
+      freqOut     => rxUsrClk_ClockFreq,
+      -- Clocks
+      clkIn       => rxUsrClk,             -- Input clock to measure
+      locClk      => axilClk,             -- System clock
+      refClk      => axilClk);            -- Stable Reference Clock
+   
+   U_ClockFreqMongtRxOutClk : entity surf.SyncClockFreq 
+   generic map(
+      TPD_G             => TPD_G,
+      USE_DSP_G         => "no",   -- "no" for no DSP implementation, "yes" to use DSP slices
+      REF_CLK_FREQ_G    => 156.25E+6,       -- Reference Clock frequency, units of Hz
+      REFRESH_RATE_G    => ite(SIMULATION_G, 1.0E+3, 1.0E+0),         -- Refresh rate, units of Hz
+      CLK_LOWER_LIMIT_G => 40.0E+6,       -- Lower Limit for clock lock, units of Hz
+      CLK_UPPER_LIMIT_G => 400.0E+6,       -- Lower Limit for clock lock, units of Hz
+      COMMON_CLK_G      => true,  -- Set to true if (locClk = refClk) to save resources else false
+      CNT_WIDTH_G       => 32)   -- Counters' width
+   port map(
+      -- Frequency Measurement and Monitoring Outputs (locClk domain)
+      freqOut     => gtRxOutClk_ClockFreq,
+      -- Clocks
+      clkIn       => gtRxOutClk,             -- Input clock to measure
+      locClk      => axilClk,             -- System clock
+      refClk      => axilClk);            -- Stable Reference Clock
+
+
+   U_ClockFreqMontxUsrClk : entity surf.SyncClockFreq 
+   generic map(
+      TPD_G             => TPD_G,
+      USE_DSP_G         => "no",   -- "no" for no DSP implementation, "yes" to use DSP slices
+      REF_CLK_FREQ_G    => 156.25E+6,       -- Reference Clock frequency, units of Hz
+      REFRESH_RATE_G    => ite(SIMULATION_G, 1.0E+3, 1.0E+0),         -- Refresh rate, units of Hz
+      CLK_LOWER_LIMIT_G => 40.0E+6,       -- Lower Limit for clock lock, units of Hz
+      CLK_UPPER_LIMIT_G => 400.0E+6,       -- Lower Limit for clock lock, units of Hz
+      COMMON_CLK_G      => true,  -- Set to true if (locClk = refClk) to save resources else false
+      CNT_WIDTH_G       => 32)   -- Counters' width
+   port map(
+      -- Frequency Measurement and Monitoring Outputs (locClk domain)
+      freqOut     => txUsrClk_ClockFreq,
+      -- Clocks
+      clkIn       => txUsrClk,             -- Input clock to measure
+      locClk      => axilClk,             -- System clock
+      refClk      => axilClk);            -- Stable Reference Clock
+   
+   
 end mapping;
