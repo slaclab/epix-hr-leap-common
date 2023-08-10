@@ -37,3 +37,19 @@ class Dac(pr.Device):
             size        = 1024*4,
             hidden      = True,
         ))
+
+    def setupFastDacWaveform(self, first, last, step) :
+        self.enable.set(True)
+        self.FastDac.WFEnabled.set(True)
+        self.FastDac.externalUpdateEn.set(True)
+        self.FastDac.waveformSource.set(0)
+        self.FastDac.rCStartValue.set(first)
+        self.FastDac.rCStopValue.set(last)
+        self.FastDac.rCStep.set(step)
+        self.FastDac.run.set(True)
+
+    def cleanupFastDacWaveform(self) :
+        self.FastDac.run.set(False)
+        self.FastDac.WFEnabled.set(False)
+        self.FastDac.externalUpdateEn.set(False)
+        self.enable.set(False)        
