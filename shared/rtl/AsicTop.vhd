@@ -427,7 +427,7 @@ begin
             IN_POLARITY_G  => '1',    -- 0 for active LOW, 1 for active HIGH
             OUT_POLARITY_G => '1',    -- 0 for active LOW, 1 for active HIGH
             OUT_DELAY_G    => 3,      -- Stages in output sync chain
-            PULSE_WIDTH_G  => 4       -- one-shot pulse width duration (units of clk cycles)
+            PULSE_WIDTH_G  => 8       -- one-shot pulse width duration (units of clk cycles)
          )
          port map(
             clk     => axilClk,

@@ -154,6 +154,15 @@ architecture RTL of DigitalAsicStreamAxiV2 is
 
    signal rxDataReMap   : Slv16Array(LANES_NO_G-1 downto 0);
    signal rxFull        : slv(LANES_NO_G-1 downto 0);
+   signal notFull       : slv(LANES_NO_G-1 downto 0);
+   signal wrAck         : slv(LANES_NO_G-1 downto 0);
+   signal overflow      : slv(LANES_NO_G-1 downto 0);
+   signal wrDataCount   : slv9Array(LANES_NO_G-1 downto 0);
+   signal rdDataCount   : slv9Array(LANES_NO_G-1 downto 0);
+   signal underflow     : slv(LANES_NO_G-1 downto 0);
+   signal empty         : slv(LANES_NO_G-1 downto 0);
+   signal DeserAxisDualClockFifoFull : sl;
+   signal DeserAxisDualClockFifoWrCnt : slv(12 downto 0);
    
    signal startRdSync   : sl;
    
@@ -176,6 +185,16 @@ architecture RTL of DigitalAsicStreamAxiV2 is
    attribute keep of dFifoEof    : signal is "true";
    attribute keep of dFifoSof    : signal is "true";
    attribute keep of dFifoValid  : signal is "true";
+
+   attribute keep of empty       : signal is "true";
+   attribute keep of underflow   : signal is "true";
+   attribute keep of rdDataCount : signal is "true";
+   attribute keep of wrDataCount : signal is "true";
+   attribute keep of overflow    : signal is "true";
+   attribute keep of wrAck       : signal is "true";
+   attribute keep of notFull     : signal is "true";
+   attribute keep of DeserAxisDualClockFifoFull : signal is "true";
+   attribute keep of DeserAxisDualClockFifoWrCnt : signal is "true";
 
 begin
    
@@ -251,6 +270,10 @@ begin
          wr_clk            => deserClk,
          wr_en             => rxValid(i),
          full              => rxFull(i),
+         wr_data_count     => wrDataCount(i),
+         not_full          => notFull(i),
+         overflow          => overflow(i),
+         wr_ack            => wrAck(i),
          din(15 downto 0)  => rxDataReMap(i),
          din(16)           => rxEofe(i),
          din(17)           => rxEof(i),
@@ -261,7 +284,10 @@ begin
          dout(16)          => dFifoEofe(i),
          dout(17)          => dFifoEof(i),
          dout(18)          => dFifoSof(i),
-         valid             => dFifoValid(i)
+         valid             => dFifoValid(i),
+         empty             => empty(i),
+         rd_data_count     => rdDataCount(i),
+         underflow         => underflow(i)
       );
       
       -- in cPix seeing corrupted junk being stuck in one of the lanes 
@@ -532,7 +558,9 @@ begin
       mAxisClk    => axisClk,
       mAxisRst    => axisRst,
       mAxisMaster => sAxisMasterWide,
-      mAxisSlave  => sAxisSlaveWide
+      mAxisSlave  => sAxisSlaveWide,
+      fifoFull    => DeserAxisDualClockFifoFull,
+      fifoWrCnt   => DeserAxisDualClockFifoWrCnt
    );
    
    
