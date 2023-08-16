@@ -39,7 +39,6 @@ class Dac(pr.Device):
         ))
 
     def setupFastDacWaveform(self, first, last, step) :
-        self.enable.set(True)
         self.FastDac.WFEnabled.set(True)
         self.FastDac.externalUpdateEn.set(True)
         self.FastDac.waveformSource.set(0)
@@ -52,4 +51,4 @@ class Dac(pr.Device):
         self.FastDac.run.set(False)
         self.FastDac.WFEnabled.set(False)
         self.FastDac.externalUpdateEn.set(False)
-        self.enable.set(False)        
+      
