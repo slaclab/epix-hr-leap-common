@@ -177,6 +177,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
    signal axilReadMaster   : AxiLiteReadMasterType;
    signal axilReadSlave    : AxiLiteReadSlaveType;
 
+   signal cycleCounter     : slv(15 downto 0);
    
    attribute keep : string;
    attribute keep of r           : signal is "true";
@@ -195,13 +196,15 @@ architecture RTL of DigitalAsicStreamAxiV2 is
    attribute keep of notFull     : signal is "true";
    attribute keep of DeserAxisDualClockFifoFull : signal is "true";
    attribute keep of DeserAxisDualClockFifoWrCnt : signal is "true";
+   attribute keep of cycleCounter : signal is "true";
 
 begin
    
    ----------------------------------------------------------------------------
    -- Cross clocking synchronizers
    ----------------------------------------------------------------------------
-   
+   cycleCounter <= r.stCnt(15 downto 0);
+
    AcqNoSync_U : entity surf.SynchronizerVector
    generic map (
       WIDTH_G => 32)
