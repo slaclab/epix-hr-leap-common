@@ -59,9 +59,9 @@ end entity AppDeserGroup;
 
 architecture mapping of AppDeserGroup is
 
-   signal deserData : Slv8Array(23 downto 0);
-   signal dlyLoad   : slv(23 downto 0);
-   signal dlyCfg    : Slv9Array(23 downto 0);
+   signal deserData : Slv8Array(NUM_OF_LANES_G-1 downto 0);
+   signal dlyLoad   : slv(NUM_OF_LANES_G-1 downto 0);
+   signal dlyCfg    : Slv9Array(NUM_OF_LANES_G-1 downto 0);
 
 begin
     
@@ -99,7 +99,7 @@ begin
       generic map (
          TPD_G            => TPD_G,
          SIMULATION_G     => SIMULATION_G,
-         NUM_LANE_G       => 24)
+         NUM_LANE_G       => NUM_OF_LANES_G)
       port map (
          -- Deserialization Interface (deserClk domain)
          deserClk        => sspClk,

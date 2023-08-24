@@ -364,6 +364,7 @@ begin
          v.txMaster.tUser  := (others => '0');
          v.txMaster.tKeep  := (others => '1');
          v.txMaster.tStrb  := (others => '1');
+         v.txMaster.tData  := (others => '0');
       end if;
       
       case r.state is
