@@ -17,8 +17,8 @@ class TimingRx(pr.Device):
     def __init__( self,sim=False,**kwargs):
         super().__init__(**kwargs)
 
-        name = ['UseMiniTpg','TxDbgRst','TxDbgPhyRst','TxDbgPhyPllRst']
-        for i in range(4):
+        name = ['UseMiniTpg','rxDbgRst','TxDbgRst','TxDbgPhyRst','TxDbgPhyPllRst']
+        for i in range(5):
             self.add(pr.RemoteVariable(
                 name         = name[i],
                 offset       = 0x0001_0100,
