@@ -13,10 +13,12 @@
 -- the terms contained in the LICENSE.txt file.
 -------------------------------------------------------------------------------
 
-library ieee;
+LIBRARY ieee;
 use ieee.std_logic_1164.all;
-use ieee.std_logic_unsigned.all;
 use ieee.std_logic_arith.all;
+use ieee.numeric_std.all;
+use ieee.std_logic_unsigned.all;
+use ieee.math_real.all;
 
 library surf;
 use surf.StdRtlPkg.all;
@@ -31,8 +33,8 @@ entity RegisterControlDualClock is
    generic (
       TPD_G             : time               := 1 ns;
       SIMULATION_G      : boolean            := false;
-      SN_CLK_PERIOD_G      : real               := 10.0e-9;
-      NUM_DS2411_G      : positive           := 3;
+      SN_CLK_PERIOD_G   : real               := 10.0e-9;
+      NUM_DS2411_G      : integer range 0 to 29 := 3;
       CLK_UPPER_LIMIT_G : real               := 320.0E+6;
       BUILD_INFO_G      : BuildInfoType
    );
@@ -184,6 +186,10 @@ architecture rtl of RegisterControlDualClock is
       asicRefClockFreq  : slv (31 downto 0);
       v1LinkUp          : sl;
       v2LinkUp          : sl;
+      
+      sn                : Slv64Array(NUM_DS2411_G-1 downto 0);
+      snTrigger         : slv(31 downto 0);
+      
       axiReadSlave      : AxiLiteReadSlaveType;
       axiWriteSlave     : AxiLiteWriteSlaveType;
    end record RegType;
@@ -199,6 +205,8 @@ architecture rtl of RegisterControlDualClock is
       asicRefClockFreq  => (others=>'0'),
       v1LinkUp          => '0',
       v2LinkUp          => '0',
+      sn                => (others => (others => '0')),
+      snTrigger         => x"00000000",
       axiReadSlave      => AXI_LITE_READ_SLAVE_INIT_C,
       axiWriteSlave     => AXI_LITE_WRITE_SLAVE_INIT_C
       );
@@ -224,14 +232,14 @@ architecture rtl of RegisterControlDualClock is
    signal asicAcqReg2Synced    : AsicAcqType2;
    signal startReadoutSynced   : sl;
    
-   signal idValues : Slv64Array(2 downto 0);
-   signal idValids : slv(2 downto 0);
+   signal idValues : Slv64Array(NUM_DS2411_G-1 downto 0);
+   signal idValids : slv(NUM_DS2411_G-1 downto 0);
    signal dummyIdValues : slv(63 downto 0);
    
    signal adcCardStartUp     : sl;
    signal adcCardStartUpEdge : sl;
    
-   signal chipIdRst          : sl;
+   signal chipIdRst          : slv(NUM_DS2411_G-1 downto 0);
    
    signal axiReset : sl;
    
@@ -270,12 +278,14 @@ begin
       -- Map out standard registers
       axiSlaveRegister (regCon, x"0000",  0, v.usrRst );
       axiSlaveRegisterR(regCon, x"0000",  0, BUILD_INFO_C.fwVersion );
-      axiSlaveRegisterR(regCon, x"0004",  0, ite(idValids(0) = '1',idValues(0)(31 downto  0), x"00000000")); 
-      axiSlaveRegisterR(regCon, x"0008",  0, ite(idValids(0) = '1',idValues(0)(63 downto 32), x"00000000")); 
-      axiSlaveRegisterR(regCon, x"000C",  0, ite(idValids(1) = '1',idValues(1)(31 downto  0), x"00000000")); 
-      axiSlaveRegisterR(regCon, x"0010",  0, ite(idValids(1) = '1',idValues(1)(63 downto 32), x"00000000")); 
-      axiSlaveRegisterR(regCon, x"0014",  0, ite(idValids(2) = '1',idValues(2)(31 downto  0), x"00000000")); 
-      axiSlaveRegisterR(regCon, x"0018",  0, ite(idValids(2) = '1',idValues(2)(63 downto 32), x"00000000")); 
+      
+      for i in 0 to NUM_DS2411_G-1 loop
+        axiSlaveRegisterR(regCon, std_logic_vector(to_unsigned((8*i+4), 8)), 0, r.sn(i)(31 downto 0));
+        axiSlaveRegisterR(regCon, std_logic_vector(to_unsigned((8*i+8), 8)), 0, r.sn(i)(63 downto 32));
+      end loop;
+      
+      axiSlaveRegister(regCon,  x"00FC",  0, v.snTrigger);
+      
       -- Register used in the sys clock domain
       axiSlaveRegister(regCon,  x"0100",  0, v.asicAcqReg2.GlblRstPolarity);
       axiSlaveRegister(regCon,  x"0100",  1, v.asicAcqReg2.ClkSyncEn);
@@ -438,6 +448,15 @@ begin
    begin
       if rising_edge(axilClk) then
          r <= rin after TPD_G;
+         
+         for i in 0 to NUM_DS2411_G-1 loop
+            if r.snTrigger(i) = '1' then
+                r.sn(i) <= (others => '0');
+            elsif idValids(i) = '1' then
+                r.sn(i) <= idValues(i);
+            end if;
+         end loop;
+         
       end if;
    end process seq;
 
@@ -703,22 +722,22 @@ begin
    -----------------------------------------------  
 
    G_DS2411 : for i in 0 to (NUM_DS2411_G-1) generate
-      U_DS2411_N : entity surf.DS2411Core
+        U_DS2411_N : entity surf.DS2411Core
          generic map (
-         TPD_G        => TPD_G,
-         CLK_PERIOD_G => SN_CLK_PERIOD_G
+             TPD_G        => TPD_G,
+             CLK_PERIOD_G => SN_CLK_PERIOD_G
          )
          port map (
-         clk       => axilClk,
-         rst       => chipIdRst,
-         fdSerSdio => serialIdIo(i),
-         fdValue   => idValues(i),
-         fdValid   => idValids(i)
+             clk       => axilClk,
+             rst       => chipIdRst(i),
+             fdSerSdio => serialIdIo(i),
+             fdValue   => idValues(i),
+             fdValid   => idValids(i)
          );
+              
+        chipIdRst(i) <= axiReset or adcCardStartUpEdge or r.snTrigger(i);
    end generate G_DS2411;
  
-      
-   chipIdRst <= axiReset or adcCardStartUpEdge;
 
    -- Special reset to the DS2411 to re-read in the event of a start up request event
    -- Start up (picoblaze) is disabling the ASIC digital monitors to ensure proper carrier ID readout
