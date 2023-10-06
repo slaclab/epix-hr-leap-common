@@ -58,13 +58,18 @@ class TimingRx(pr.Device):
         def ConfigLclsTimingV2():
             print ( 'ConfigLclsTimingV2()' )
             self.UseMiniTpg.set(0x0)
+            time.sleep(0.1)
             self.TxDbgPhyRst.set(0x1)
+            time.sleep(0.1)
             self.TxDbgPhyRst.set(0x0)
+            time.sleep(0.1)
             self.TimingFrameRx.ModeSelEn.setDisp('UseClkSel')
             self.TimingFrameRx.RxPllReset.set(1)
             time.sleep(1.0)
             self.TimingFrameRx.RxPllReset.set(0)
+            time.sleep(0.1)
             self.TimingFrameRx.ClkSel.set(0x1)
+            time.sleep(0.1)
             self.TimingFrameRx.C_RxReset()
             time.sleep(1.0)
             self.TimingFrameRx.RxDown.set(0) # Reset the latching register
