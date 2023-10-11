@@ -48,7 +48,7 @@ class TimingRx(pr.Device):
 
         self.add(l2si.TriggerEventManager(
             offset       = 0x0004_0000,
-            numDetectors = 1,
+            numDetectors = 2,
             enLclsI      = False,
             enLclsII     = True,
             expand       = True,
@@ -58,16 +58,24 @@ class TimingRx(pr.Device):
         def ConfigLclsTimingV2():
             print ( 'ConfigLclsTimingV2()' )
             self.UseMiniTpg.set(0x0)
+            time.sleep(0.1)
             self.TxDbgPhyRst.set(0x1)
+            time.sleep(0.1)
             self.TxDbgPhyRst.set(0x0)
+            time.sleep(0.1)
             self.TimingFrameRx.ModeSelEn.setDisp('UseClkSel')
             self.TimingFrameRx.RxPllReset.set(1)
             time.sleep(1.0)
             self.TimingFrameRx.RxPllReset.set(0)
+            time.sleep(0.1)
             self.TimingFrameRx.ClkSel.set(0x1)
+            time.sleep(0.1)
             self.TimingFrameRx.C_RxReset()
             time.sleep(1.0)
             self.TimingFrameRx.RxDown.set(0) # Reset the latching register
+            self.TriggerEventManager.TriggerEventBuffer[0].TriggerSource.set(0)
+            self.TriggerEventManager.TriggerEventBuffer[1].TriggerSource.set(0)
+            print ( 'ConfigLclsTimingV2() Done' )
 
         @self.command()
         def ConfigureXpmMini():
@@ -78,9 +86,11 @@ class TimingRx(pr.Device):
             self.XpmMiniWrapper.XpmMini.Link.set(0)
             self.XpmMiniWrapper.XpmMini.Config_L0Select_RateSel.set(5)
             self.XpmMiniWrapper.XpmMini.Config_L0Select_Enabled.set(False)
+            print ( 'ConfigureXpmMini() Done' )
 
         @self.command(description="GTX TX Reset")
         def TimingTxReset():
             print ( 'TimingTxReset()' )
             self.TxDbgPhyRst.set(0x1)
             self.TxDbgPhyRst.set(0x0)
+            print ( 'TimingTxReset() Done' )
