@@ -75,6 +75,7 @@ class TimingRx(pr.Device):
             self.TimingFrameRx.RxDown.set(0) # Reset the latching register
             self.TriggerEventManager.TriggerEventBuffer[0].TriggerSource.set(0)
             self.TriggerEventManager.TriggerEventBuffer[1].TriggerSource.set(0)
+            print ( 'ConfigLclsTimingV2() Done' )
 
         @self.command()
         def ConfigureXpmMini():
@@ -85,9 +86,11 @@ class TimingRx(pr.Device):
             self.XpmMiniWrapper.XpmMini.Link.set(0)
             self.XpmMiniWrapper.XpmMini.Config_L0Select_RateSel.set(5)
             self.XpmMiniWrapper.XpmMini.Config_L0Select_Enabled.set(False)
+            print ( 'ConfigureXpmMini() Done' )
 
         @self.command(description="GTX TX Reset")
         def TimingTxReset():
             print ( 'TimingTxReset()' )
             self.TxDbgPhyRst.set(0x1)
             self.TxDbgPhyRst.set(0x0)
+            print ( 'TimingTxReset() Done' )
