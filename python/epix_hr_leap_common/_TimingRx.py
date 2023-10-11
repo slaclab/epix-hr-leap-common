@@ -48,7 +48,7 @@ class TimingRx(pr.Device):
 
         self.add(l2si.TriggerEventManager(
             offset       = 0x0004_0000,
-            numDetectors = 1,
+            numDetectors = 2,
             enLclsI      = False,
             enLclsII     = True,
             expand       = True,
