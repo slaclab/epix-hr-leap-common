@@ -116,8 +116,9 @@ architecture mapping of TimingRx is
    signal axilReadSlaves   : AxiLiteReadSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0);
 
    signal gtRxData : slv(15 downto 0);
+   signal gtRxData_s0 : slv(15 downto 0);
    signal rxData   : slv(15 downto 0);
-
+   
    signal gtRxDataK : slv(1 downto 0);
    signal rxDataK   : slv(1 downto 0);
 
@@ -315,7 +316,7 @@ begin
             rxStatus        => gtRxStatus,
             rxUsrClkActive  => '1',
             rxUsrClk        => rxUsrClk,
-            rxData          => gtRxData,
+            rxData          => gtRxData_s0,
             rxDataK         => gtRxDataK,
             rxDispErr       => gtRxDispErr,
             rxDecErr        => gtRxDecErr,
@@ -343,6 +344,7 @@ begin
       gtTxStatus  <= TIMING_PHY_STATUS_FORCE_C;
       gtRxStatus  <= TIMING_PHY_STATUS_FORCE_C;
       gtRxData    <= (others => '0');   --temTimingTxPhy.data;
+      gtRxData_s0 <= (others => '0');
       gtRxDataK   <= (others => '0');   --temTimingTxPhy.dataK;
       gtRxDispErr <= "00";
       gtRxDecErr  <= "00";
@@ -361,6 +363,7 @@ begin
             rxDecErr  <= "00"                      after TPD_G;
          else
             rxStatus  <= gtRxStatus  after TPD_G;
+            gtRxData  <= gtRxData_s0 after TPD_G;
             rxData    <= gtRxData    after TPD_G;
             rxDataK   <= gtRxDataK   after TPD_G;
             rxDispErr <= gtRxDispErr after TPD_G;

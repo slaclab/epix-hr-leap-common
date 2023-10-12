@@ -33,12 +33,12 @@ class RegisterControlDualClock(pr.Device):
       #Setup registers & variables
       
       self.add(pr.RemoteVariable(name='Version',         description='Version',           offset=0x00000000, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}',  verify = False, mode='RO'))
-      self.add(pr.RemoteVariable(name=snEnum[0],         description=snEnum[0],           offset=0x00000004, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
-      self.add(pr.RemoteVariable(name=snEnum[1],         description=snEnum[1],           offset=0x00000008, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
-      self.add(pr.RemoteVariable(name=snEnum[2],         description=snEnum[2],           offset=0x0000000C, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
-      self.add(pr.RemoteVariable(name=snEnum[3],         description=snEnum[3],           offset=0x00000010, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
-      self.add(pr.RemoteVariable(name=snEnum[4],         description=snEnum[4],           offset=0x00000014, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
-      self.add(pr.RemoteVariable(name=snEnum[5],         description=snEnum[5],           offset=0x00000018, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
+      
+      for snId in snEnum.keys():
+        self.add(pr.RemoteVariable(name=snEnum[snId],         description=snEnum[snId],           offset=((snId*4)+4), bitSize=32, bitOffset=0, base=pr.UInt, disp = '{:#x}', mode='RO'))
+        
+      self.add(pr.RemoteVariable(name='IDreset',         description='Reset DS2411Core module',         offset=0x000000FC, bitOffset=0, base=pr.UInt, mode='RW'))
+      
       self.add(pr.RemoteVariable(name='GlblRstPolarityN',description='GlblRstPolarityN (active low)',   offset=0x00000100, bitSize=1,  bitOffset=0, base=pr.Bool, mode='RW'))
       self.add(pr.RemoteVariable(name='ClkSyncEn',       description='Enables clock to be available inside ASIC.',   offset=0x00000100, bitSize=1,  bitOffset=1, base=pr.Bool, mode='RW'))
       self.add(pr.RemoteVariable(name='RoLogicRstN',     description='Enables digital rodout clock. (Active low)',   offset=0x00000100, bitSize=1,  bitOffset=2, base=pr.Bool, mode='RW'))
