@@ -256,7 +256,7 @@ begin
    -------------------------------
    -- Configuration Register
    -------------------------------  
-   comb : process (axiReadMaster, axilRst, axiWriteMaster, r, idValids, idValues, acqStart, saciReadoutAck, asicRefClockFreq, v1LinkUp, v2LinkUp) is
+   comb : process (axiReadMaster, axilRst, axiWriteMaster, r, idValids, idValues, acqStart, digOutSync, saciReadoutAck, asicRefClockFreq, v1LinkUp, v2LinkUp, chipIdRst) is
       variable v           : RegType;
       variable regCon      : AxiLiteEndPointType;
       
@@ -416,8 +416,15 @@ begin
          v.boardRegOut.acqCnt := (others=>'0');
          v.saciPrepRdoutCnt   := (others=>'0');
       end if;
-  
-    
+      
+      for i in 0 to NUM_DS2411_G-1 loop
+        if chipIdRst(i) = '1' then
+            v.sn(i) := (others => '0');
+        elsif idValids(i) = '1' then
+            v.sn(i) := idValues(i);
+        end if;
+      end loop;
+
       -- Synchronous Reset
       if axilRst = '1' then
          v := REG_INIT_C;
@@ -448,15 +455,6 @@ begin
    begin
       if rising_edge(axilClk) then
          r <= rin after TPD_G;
-         
-         for i in 0 to NUM_DS2411_G-1 loop
-            if r.snTrigger(i) = '1' then
-                r.sn(i) <= (others => '0');
-            elsif idValids(i) = '1' then
-                r.sn(i) <= idValues(i);
-            end if;
-         end loop;
-         
       end if;
    end process seq;
 
