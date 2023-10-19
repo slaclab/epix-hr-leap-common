@@ -298,7 +298,7 @@ architecture rtl of Core is
          U_asicData : entity surf.RogueTcpStreamWrap
             generic map (
                TPD_G         => TPD_G,
-               PORT_NUM_G    => 24002+2*i,  -- TCP Ports [24002:24000+NUM_OF_LANES_G*2-1]
+               PORT_NUM_G    => 24002+2*i,  -- TCP Ports [24002:24002+NUM_OF_LANES_G*2-1]
                SSI_EN_G      => true,
                AXIS_CONFIG_G => SSI_CONFIG_INIT_C)
             port map (
@@ -325,6 +325,23 @@ architecture rtl of Core is
          mAxisMaster => ssiCmdMaster,
          mAxisSlave  => ssiCmdSlave
       );
+
+      GEN_SLOW_ADC_VEC :
+      for i in NUM_OF_SLOW_ADCS_G - 1 downto 0 generate
+         U_slowAdcData : entity surf.RogueTcpStreamWrap
+            generic map (
+               TPD_G         => TPD_G,
+               PORT_NUM_G    => 24016+2*i,  -- TCP Ports [24016:24016+NUM_OF_SLOW_ADCS_G*2-1]
+               SSI_EN_G      => true,
+               AXIS_CONFIG_G => PGP4_AXIS_CONFIG_C)
+            port map (
+               axisClk     => axilClock,
+               axisRst     => axilReset,
+               sAxisMaster => slowAdcMasters(i),
+               sAxisSlave  => slowAdcSlaves(i),
+               mAxisMaster => open,
+               mAxisSlave  => AXI_STREAM_SLAVE_FORCE_C);
+      end generate GEN_SLOW_ADC_VEC;
 
       U_SsiCmdMaster : entity surf.SsiCmdMaster
       generic map (
