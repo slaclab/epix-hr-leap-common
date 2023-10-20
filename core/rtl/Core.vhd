@@ -333,7 +333,7 @@ architecture rtl of Core is
                TPD_G         => TPD_G,
                PORT_NUM_G    => 24016+2*i,  -- TCP Ports [24016:24016+NUM_OF_SLOW_ADCS_G*2-1]
                SSI_EN_G      => true,
-               AXIS_CONFIG_G => PGP4_AXIS_CONFIG_C)
+               AXIS_CONFIG_G => ssiAxiStreamConfig(4))
             port map (
                axisClk     => axilClock,
                axisRst     => axilReset,
