@@ -39,7 +39,8 @@ entity Core is
       NUM_OF_LANES_G       : integer         := 4;
       NUM_OF_PSCOPE_G      : integer          := 4;
       NUM_OF_SLOW_ADCS_G   : integer          := 4;
-      MEMORY_INIT_FILE_G   : string           := "none"
+      MEMORY_INIT_FILE_G   : string           := "none";
+      SLOW_ADC_AXI_CFG_G   : AxiStreamConfigType := ssiAxiStreamConfig(4)
       );
    port (
       axilClk         : out   sl;
@@ -221,12 +222,13 @@ architecture rtl of Core is
       ---------------------------------------
       U_Pgp : entity work.PgpWrapper
          generic map (
-            TPD_G            => TPD_G,
-            SIMULATION_G     => SIMULATION_G,
-            AXIL_BASE_ADDR_G => XBAR_CONFIG_C(PGP_INDEX_C).baseAddr,
-            NUM_OF_SLOW_ADCS_G  => NUM_OF_SLOW_ADCS_G,
-            NUM_OF_PSCOPE_G   => NUM_OF_PSCOPE_G,
-            NUM_OF_LANES_G    => NUM_OF_LANES_G
+            TPD_G              => TPD_G,
+            SIMULATION_G       => SIMULATION_G,
+            AXIL_BASE_ADDR_G   => XBAR_CONFIG_C(PGP_INDEX_C).baseAddr,
+            NUM_OF_SLOW_ADCS_G => NUM_OF_SLOW_ADCS_G,
+            NUM_OF_PSCOPE_G    => NUM_OF_PSCOPE_G,
+            NUM_OF_LANES_G     => NUM_OF_LANES_G,
+            SLOW_ADC_AXI_CFG_G => SLOW_ADC_AXI_CFG_G
             )
          port map (
             -- Clock and Reset
@@ -333,7 +335,7 @@ architecture rtl of Core is
                TPD_G         => TPD_G,
                PORT_NUM_G    => 24016+2*i,  -- TCP Ports [24016:24016+NUM_OF_SLOW_ADCS_G*2-1]
                SSI_EN_G      => true,
-               AXIS_CONFIG_G => ssiAxiStreamConfig(4))
+               AXIS_CONFIG_G => SLOW_ADC_AXI_CFG_G)
             port map (
                axisClk     => axilClock,
                axisRst     => axilReset,
