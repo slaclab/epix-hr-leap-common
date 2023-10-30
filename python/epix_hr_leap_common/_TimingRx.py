@@ -73,8 +73,8 @@ class TimingRx(pr.Device):
             self.TimingFrameRx.C_RxReset()
             time.sleep(1.0)
             self.TimingFrameRx.RxDown.set(0) # Reset the latching register
-            self.TriggerEventManager.TriggerEventBuffer[0].TriggerSource.set(0)
-            self.TriggerEventManager.TriggerEventBuffer[1].TriggerSource.set(0)
+            self.TriggerEventManager.TriggerEventBuffer[0].TriggerSource.setDisp('XPM')
+            self.TriggerEventManager.TriggerEventBuffer[1].TriggerSource.setDisp('XPM')
             print ( 'ConfigLclsTimingV2() Done' )
 
         @self.command()
