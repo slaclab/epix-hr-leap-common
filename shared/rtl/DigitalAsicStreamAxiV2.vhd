@@ -32,6 +32,7 @@ entity DigitalAsicStreamAxiV2 is
       ASIC_NO_G            : slv(2 downto 0)  := "000";
       LANES_NO_G           : natural := 6;
       GAIN_BIT_REMAP_G     : boolean := true; --true moves LSB to MSB
+      DESCRAMBLE_G         : boolean := false;
       AXIL_ERR_RESP_G      : slv(1 downto 0)  := AXI_RESP_DECERR_C
    );
    port ( 
@@ -169,7 +170,10 @@ architecture RTL of DigitalAsicStreamAxiV2 is
    signal txSlave          : AxiStreamSlaveType;
    signal sAxisMasterWide  : AxiStreamMasterType;
    signal sAxisSlaveWide   : AxiStreamSlaveType;
-   
+
+   signal sAxisMasterDesc  : AxiStreamMasterType;
+   signal sAxisSlaveDesc   : AxiStreamSlaveType;
+
    signal acqNoSync     : slv(31 downto 0);
    
    signal axilWriteMaster  : AxiLiteWriteMasterType;
@@ -545,29 +549,67 @@ begin
    -- gearbox 4/3 by double stream resizing 
    -- must be able to store whole frame if AXIS is muxed
    ----------------------------------------------------------------------------
-   DeserAxisDualClockFifo_U: entity surf.AxiStreamFifoV2
-   generic map(
-      GEN_SYNC_FIFO_G      => false,
-      FIFO_ADDR_WIDTH_G    => 13,
-      CASCADE_SIZE_G       => 1,
-      INT_WIDTH_SELECT_G   => "WIDE",
-      SLAVE_AXI_CONFIG_G   => AXI_STREAM_CONFIG_I_C,
-      MASTER_AXI_CONFIG_G  => AXI_STREAM_CONFIG_W_C
-   )
-   port map(
-      sAxisClk    => deserClk,
-      sAxisRst    => deserRst,
-      sAxisMaster => r.txMaster,
-      sAxisSlave  => txSlave,
-      mAxisClk    => axisClk,
-      mAxisRst    => axisRst,
-      mAxisMaster => sAxisMasterWide,
-      mAxisSlave  => sAxisSlaveWide,
-      fifoFull    => DeserAxisDualClockFifoFull,
-      fifoWrCnt   => DeserAxisDualClockFifoWrCnt
-   );
-   
-   
+
+   G_DESCRAMBLE_TRUE : if (DESCRAMBLE_G = TRUE) generate
+      -- Assumes AXI stream is AXI_STREAM_CONFIG_I_C (48 bytes)
+      ImageDescrambler_U: entity work.ImageDescrambler
+      port map( 
+
+         axisClk           => deserClk,
+         axisRst           => deserRst,
+         sAxisMaster       => r.txMaster,
+         sAxisSlave        => txSlave,
+         mAxisMaster       => sAxisMasterDesc,
+         mAxisSlave        => sAxisSlaveDesc
+      );
+
+      DeserAxisDualClockFifo_U: entity surf.AxiStreamFifoV2
+      generic map(
+         GEN_SYNC_FIFO_G      => false,
+         FIFO_ADDR_WIDTH_G    => 13,
+         CASCADE_SIZE_G       => 1,
+         INT_WIDTH_SELECT_G   => "WIDE",
+         SLAVE_AXI_CONFIG_G   => AXI_STREAM_CONFIG_I_C,
+         MASTER_AXI_CONFIG_G  => AXI_STREAM_CONFIG_W_C
+      )
+      port map(
+         sAxisClk    => deserClk,
+         sAxisRst    => deserRst,
+         sAxisMaster => sAxisMasterDesc,
+         sAxisSlave  => sAxisSlaveDesc,
+         mAxisClk    => axisClk,
+         mAxisRst    => axisRst,
+         mAxisMaster => sAxisMasterWide,
+         mAxisSlave  => sAxisSlaveWide,
+         fifoFull    => DeserAxisDualClockFifoFull,
+         fifoWrCnt   => DeserAxisDualClockFifoWrCnt
+      );
+   end generate;
+ 
+   G_DESCRAMBLE_FALSE : if (DESCRAMBLE_G = FALSE) generate
+      DeserAxisDualClockFifo_U: entity surf.AxiStreamFifoV2
+      generic map(
+         GEN_SYNC_FIFO_G      => false,
+         FIFO_ADDR_WIDTH_G    => 13,
+         CASCADE_SIZE_G       => 1,
+         INT_WIDTH_SELECT_G   => "WIDE",
+         SLAVE_AXI_CONFIG_G   => AXI_STREAM_CONFIG_I_C,
+         MASTER_AXI_CONFIG_G  => AXI_STREAM_CONFIG_W_C
+      )
+      port map(
+         sAxisClk    => deserClk,
+         sAxisRst    => deserRst,
+         sAxisMaster => r.txMaster,
+         sAxisSlave  => txSlave,
+         mAxisClk    => axisClk,
+         mAxisRst    => axisRst,
+         mAxisMaster => sAxisMasterWide,
+         mAxisSlave  => sAxisSlaveWide,
+         fifoFull    => DeserAxisDualClockFifoFull,
+         fifoWrCnt   => DeserAxisDualClockFifoWrCnt
+      );
+   end generate;
+
    AxisResize48to16_U: entity surf.AxiStreamResize
    generic map(
       -- General Configurations

@@ -41,6 +41,7 @@ entity AsicTop is
    generic (
       TPD_G                   : time          := 1 ns;
       SIMULATION_G            : boolean       := false;
+      DESCRAMBLE_G            : boolean       := false;
       SN_CLK_PERIOD_G         : real          := 10.0e-9;
       AXIL_BASE_ADDR_G        : slv(31 downto 0);
       NUM_OF_PSCOPE_G         : integer       := 4;
@@ -348,6 +349,7 @@ begin
             generic map(
                TPD_G               => TPD_G,
                VC_NO_G             => "0000",
+               DESCRAMBLE_G        => DESCRAMBLE_G,
                LANE_NO_G           => toSlv(i, 4),
                ASIC_NO_G           => toSlv(i, 3),
                LANES_NO_G          => 24,
