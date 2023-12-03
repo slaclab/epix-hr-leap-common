@@ -570,7 +570,8 @@ begin
          CASCADE_SIZE_G       => 1,
          INT_WIDTH_SELECT_G   => "WIDE",
          SLAVE_AXI_CONFIG_G   => AXI_STREAM_CONFIG_I_C,
-         MASTER_AXI_CONFIG_G  => AXI_STREAM_CONFIG_W_C
+         MASTER_AXI_CONFIG_G  => AXI_STREAM_CONFIG_W_C,
+         MEMORY_TYPE_G        => "ULTRA"
       )
       port map(
          sAxisClk    => deserClk,
