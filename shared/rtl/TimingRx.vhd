@@ -114,9 +114,15 @@ architecture mapping of TimingRx is
    signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0);
    signal axilReadMasters  : AxiLiteReadMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
    signal axilReadSlaves   : AxiLiteReadSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0);
+   
+   signal rxStatusReg: TimingPhyStatusType;
+   signal gtRxDataReg: slv(15 downto 0);
+   signal rxDataReg: slv(15 downto 0);
+   signal rxDataKReg: slv(1 downto 0);
+   signal rxDispErrReg: slv(1 downto 0);
+   signal rxDecErrReg: slv(1 downto 0);
 
    signal gtRxData : slv(15 downto 0);
-   signal gtRxData_s0 : slv(15 downto 0);
    signal rxData   : slv(15 downto 0);
    
    signal gtRxDataK : slv(1 downto 0);
@@ -316,7 +322,7 @@ begin
             rxStatus        => gtRxStatus,
             rxUsrClkActive  => '1',
             rxUsrClk        => rxUsrClk,
-            rxData          => gtRxData_s0,
+            rxData          => gtRxData,
             rxDataK         => gtRxDataK,
             rxDispErr       => gtRxDispErr,
             rxDecErr        => gtRxDecErr,
@@ -344,7 +350,6 @@ begin
       gtTxStatus  <= TIMING_PHY_STATUS_FORCE_C;
       gtRxStatus  <= TIMING_PHY_STATUS_FORCE_C;
       gtRxData    <= (others => '0');   --temTimingTxPhy.data;
-      gtRxData_s0 <= (others => '0');
       gtRxDataK   <= (others => '0');   --temTimingTxPhy.dataK;
       gtRxDispErr <= "00";
       gtRxDecErr  <= "00";
@@ -353,7 +358,6 @@ begin
 
    process(rxUsrClk)
    begin
-      -- Register to help meet timing
       if rising_edge(rxUsrClk) then
          if (useMiniTpgSync = '1') then
             rxStatus  <= TIMING_PHY_STATUS_FORCE_C after TPD_G;
@@ -362,13 +366,18 @@ begin
             rxDispErr <= "00"                      after TPD_G;
             rxDecErr  <= "00"                      after TPD_G;
          else
-            rxStatus  <= gtRxStatus  after TPD_G;
-            gtRxData  <= gtRxData_s0 after TPD_G;
-            rxData    <= gtRxData    after TPD_G;
-            rxDataK   <= gtRxDataK   after TPD_G;
-            rxDispErr <= gtRxDispErr after TPD_G;
-            rxDecErr  <= gtRxDecErr  after TPD_G;
+            rxStatus  <= rxStatusReg  after TPD_G;
+            rxData    <= rxDataReg    after TPD_G;
+            rxDataK   <= rxDataKReg   after TPD_G;
+            rxDispErr <= rxDispErrReg after TPD_G;
+            rxDecErr  <= rxDecErrReg  after TPD_G;
          end if;
+         -- Register to help meet timing
+         rxStatusReg  <= gtRxStatus  after TPD_G;
+         rxDataReg    <= gtRxData    after TPD_G;
+         rxDataKReg   <= gtRxDataK   after TPD_G;
+         rxDispErrReg <= gtRxDispErr after TPD_G;
+         rxDecErrReg  <= gtRxDecErr  after TPD_G;
       end if;
    end process;
 
