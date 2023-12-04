@@ -16,7 +16,7 @@ import time
 class TimingRx(pr.Device):
     def __init__( self,sim=False,**kwargs):
         super().__init__(**kwargs)
-
+        
         name = ['UseMiniTpg','rxDbgRst','TxDbgRst','TxDbgPhyRst','TxDbgPhyPllRst']
         for i in range(5):
             self.add(pr.RemoteVariable(
@@ -58,11 +58,19 @@ class TimingRx(pr.Device):
         def ConfigLclsTimingV2():
             print ( 'ConfigLclsTimingV2()' )
             self.UseMiniTpg.set(0x0)
-            time.sleep(0.1)
+            
+            self.TxDbgRst.set(0x1)
+            self.RxDbgRst.set(0x1)
             self.TxDbgPhyRst.set(0x1)
-            time.sleep(0.1)
+            self.TxDbgPhyPllRst.set(0x1)
+            
+            self.TxDbgPhyPllRst.set(0x0)
             self.TxDbgPhyRst.set(0x0)
-            time.sleep(0.1)
+            self.TxDbgRst.set(0x0)
+            self.RxDbgRst.set(0x0)            
+            
+            #Shall wait for reset done (GTH) ?
+
             self.TimingFrameRx.ModeSelEn.setDisp('UseClkSel')
             self.TimingFrameRx.RxPllReset.set(1)
             time.sleep(1.0)
