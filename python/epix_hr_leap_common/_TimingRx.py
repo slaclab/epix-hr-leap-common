@@ -16,11 +16,9 @@ import time
 class TimingRx(pr.Device):
     def __init__( self,sim=False,**kwargs):
         super().__init__(**kwargs)
-
-        #name = ['UseMiniTpg','TxDbgRst','TxDbgPhyRst','TxDbgPhyPllRst']
-        name = ['UseMiniTpg','RxDbgRst','TxDbgRst','TxDbgPhyRst','TxDbgPhyPllRst']
         
-        for i in range(len(name)):
+        name = ['UseMiniTpg','rxDbgRst','TxDbgRst','TxDbgPhyRst','TxDbgPhyPllRst']
+        for i in range(5):
             self.add(pr.RemoteVariable(
                 name         = name[i],
                 offset       = 0x0001_0100,
@@ -50,7 +48,7 @@ class TimingRx(pr.Device):
 
         self.add(l2si.TriggerEventManager(
             offset       = 0x0004_0000,
-            numDetectors = 1,
+            numDetectors = 2,
             enLclsI      = False,
             enLclsII     = True,
             expand       = True,
@@ -72,15 +70,20 @@ class TimingRx(pr.Device):
             self.RxDbgRst.set(0x0)            
             
             #Shall wait for reset done (GTH) ?
-            
+
             self.TimingFrameRx.ModeSelEn.setDisp('UseClkSel')
             self.TimingFrameRx.RxPllReset.set(1)
             time.sleep(1.0)
             self.TimingFrameRx.RxPllReset.set(0)
+            time.sleep(0.1)
             self.TimingFrameRx.ClkSel.set(0x1)
+            time.sleep(0.1)
             self.TimingFrameRx.C_RxReset()
             time.sleep(1.0)
             self.TimingFrameRx.RxDown.set(0) # Reset the latching register
+            self.TriggerEventManager.TriggerEventBuffer[0].TriggerSource.setDisp('XPM')
+            self.TriggerEventManager.TriggerEventBuffer[1].TriggerSource.setDisp('XPM')
+            print ( 'ConfigLclsTimingV2() Done' )
 
         @self.command()
         def ConfigureXpmMini():
@@ -91,9 +94,11 @@ class TimingRx(pr.Device):
             self.XpmMiniWrapper.XpmMini.Link.set(0)
             self.XpmMiniWrapper.XpmMini.Config_L0Select_RateSel.set(5)
             self.XpmMiniWrapper.XpmMini.Config_L0Select_Enabled.set(False)
+            print ( 'ConfigureXpmMini() Done' )
 
         @self.command(description="GTX TX Reset")
         def TimingTxReset():
             print ( 'TimingTxReset()' )
             self.TxDbgPhyRst.set(0x1)
             self.TxDbgPhyRst.set(0x0)
+            print ( 'TimingTxReset() Done' )

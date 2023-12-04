@@ -34,7 +34,8 @@ entity PgpWrapper is
       AXIL_BASE_ADDR_G        : slv(31 downto 0) := (others => '0');
       NUM_OF_LANES_G          : integer         := 4;
       NUM_OF_SLOW_ADCS_G      : integer         := 4;
-      NUM_OF_PSCOPE_G         : integer        := 4
+      NUM_OF_PSCOPE_G         : integer        := 4;
+      SLOW_ADC_AXI_CFG_G      : AxiStreamConfigType := ssiAxiStreamConfig(4)
    );
    port (
       -- Clock and Reset
@@ -445,7 +446,7 @@ begin
       U_TX_FIFO : entity surf.PgpTxVcFifo
          generic map (
             TPD_G            => TPD_G,
-            APP_AXI_CONFIG_G => ssiAxiStreamConfig(4),
+            APP_AXI_CONFIG_G => SLOW_ADC_AXI_CFG_G,
             PHY_AXI_CONFIG_G => PGP4_AXIS_CONFIG_C)
          port map (
             -- AXIS Interface (axisClk domain)
