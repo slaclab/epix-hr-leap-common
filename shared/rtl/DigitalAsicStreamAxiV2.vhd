@@ -552,7 +552,7 @@ begin
 
    G_DESCRAMBLE_TRUE : if (DESCRAMBLE_G = TRUE) generate
       -- Assumes AXI stream is AXI_STREAM_CONFIG_I_C (48 bytes)
-      ImageDescrambler_U: entity work.ImageDescrambler
+      ImageDescrambler_U: entity work.AxiStreameDescrambleWrapper
       port map( 
 
          axisClk           => deserClk,
