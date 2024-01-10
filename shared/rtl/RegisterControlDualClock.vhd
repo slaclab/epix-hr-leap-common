@@ -324,7 +324,6 @@ begin
       axiSlaveRegister(regCon,  x"0258",  0, v.boardRegOut.epixhrDbgSel1);
       axiSlaveRegister(regCon,  x"025C",  0, v.boardRegOut.epixhrDbgSel2);
       axiSlaveRegister(regCon,  x"0260",  0, v.boardRegOut.epixhrDbgSel3);
-      axiSlaveRegister(regCon,  x"0264",  0, v.boardRegOut.requestStartupCal);
       axiSlaveRegister(regCon,  x"0264",  1, v.boardRegOut.getSN);
       axiSlaveRegisterR(regCon, x"0268",  0, r.asicRefClockFreq);
       axiSlaveRegisterR(regCon, x"026C",  3, v.v1LinkUp);
