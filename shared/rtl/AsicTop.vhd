@@ -166,8 +166,8 @@ architecture rtl of AsicTop is
    signal axilBatcherWriteSlave  : AxiLiteWriteSlaveArray(NUM_LANES_G - 1 downto 0);
 
    -- duplicated timing information
-   signal eventTimingMsgMasterArray  : AxiStreamMasterArray(NUM_LANES_G - 1 downto 0);
-   signal eventTimingMsgSlaveArray   : AxiStreamSlaveArray(NUM_LANES_G - 1 downto 0);
+   signal eventTrigMsgMasterArray  : AxiStreamMasterArray(NUM_LANES_G - 1 downto 0);
+   signal eventTrigMsgSlaveArray   : AxiStreamSlaveArray(NUM_LANES_G - 1 downto 0);
 
    -- Timing info synched to axilClk
    signal eventTimingMsgMasterAxiLSync  : AxiStreamMasterType;
@@ -333,11 +333,11 @@ begin
          axisClk      => axilClk,
          axisRst      => axilRst,
          -- Slave
-         sAxisMaster  => eventTimingMsgMasters(1),
-         sAxisSlave   => eventTimingMsgSlaves(1),
+         sAxisMaster  => eventTrigMsgMasters(1),
+         sAxisSlave   => eventTrigMsgSlaves(1),
          -- Masters
-         mAxisMasters => eventTimingMsgMasterArray,
-         mAxisSlaves  => eventTimingMsgSlaveArray
+         mAxisMasters => eventTrigMsgMasterArray,
+         mAxisSlaves  => eventTrigMsgSlaveArray
       );
    
       -----------------------------------------------------------------------------
@@ -405,10 +405,10 @@ begin
                axilWriteMaster            => axilWriteMasters(EVENTBUILDER_BASE_INDEX_C + i),
                axilWriteSlave             => axilWriteSlaves(EVENTBUILDER_BASE_INDEX_C + i),
                -- Inbound Master AXIS Interfaces
-               sAxisMasters(0)            => eventTimingMsgMasterArray(i),
+               sAxisMasters(0)            => eventTrigMsgMasterArray(i),
                sAxisMasters(1)            => mAxisMastersASIC(i),
                -- Inbound Slave AXIS Interfaces
-               sAxisSlaves(0)             => eventTimingMsgSlaveArray(i),
+               sAxisSlaves(0)             => eventTrigMsgSlaveArray(i),
                sAxisSlaves(1)             => mAxisSlavesASIC(i),
                -- Outbound AXIS
                mAxisMaster                => asicDataMasters(i), --to core
