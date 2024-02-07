@@ -65,6 +65,8 @@ entity PgpWrapper is
       leapTxN          : out slv(7 downto 0);
       leapRxP          : in  slv(7 downto 0);
       leapRxN          : in  slv(7 downto 0);
+      -- Backend PCIe DAQ trigger pause for XPM (refer to TimingRx.vhd)
+      pcieDaqTrigPause : out sl;
       -- ssi commands
       ssiCmd          : out    SsiCmdMasterType);
 end PgpWrapper;
@@ -121,6 +123,9 @@ architecture mapping of PgpWrapper is
    signal oscopeTxSlaves  : AxiStreamSlaveArray(NUM_OF_PSCOPE_G - 1 downto 0)  := (others => AXI_STREAM_SLAVE_FORCE_C);
 
 begin
+
+   -- Mapping the trigPauses from one of the PGP "DATA" lanes (they are all identical)
+   pcieDaqTrigPause <= pgpRxOut(0).remLinkData(0);
 
    U_XBAR : entity surf.AxiLiteCrossbar
       generic map (
