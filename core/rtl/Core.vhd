@@ -45,7 +45,7 @@ entity Core is
    port (
       axilClk          : out   sl;
       axilRst          : out   sl;
-      pcieDaqTrigPause : out sl
+      pcieDaqTrigPause : out   sl;
       --------------------------------------------
       --          Top Level Ports 
       --------------------------------------------
