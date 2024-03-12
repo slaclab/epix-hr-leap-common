@@ -43,8 +43,9 @@ entity Core is
       SLOW_ADC_AXI_CFG_G   : AxiStreamConfigType := ssiAxiStreamConfig(4)
       );
    port (
-      axilClk         : out   sl;
-      axilRst         : out   sl;
+      axilClk          : out   sl;
+      axilRst          : out   sl;
+      pcieDaqTrigPause : out   sl;
       --------------------------------------------
       --          Top Level Ports 
       --------------------------------------------
@@ -262,6 +263,9 @@ architecture rtl of Core is
             leapTxN          => fpgaOutObTransInM,
             leapRxP          => fpgaInObTransOutP,
             leapRxN          => fpgaInObTransOutM,
+
+            -- Backend PCIe DAQ trigger pause for XPM (refer to TimingRx.vhd)
+            pcieDaqTrigPause => pcieDaqTrigPause,
 
             -- SW trigger
             ssiCmd           => ssiCmd
