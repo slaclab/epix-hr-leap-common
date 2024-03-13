@@ -29,14 +29,18 @@ class Dac(pr.Device):
             MaximumDacValue = 1048576
         ))
 
-        self.add(pr.MemoryDevice(
+        self.add(pr.RemoteVariable(
             name        = 'WaveformMem',
             offset      = 2*0x0001_0000,
-            wordBitSize = 16,
-            stride      = 4,
-            size        = 1024*4,
+            base        = pr.UInt, # or whatever type
+            valueBits   = 16,
+            valueStride = 32,
+            mode        = 'RW',
+            numValues   = 1024,
             hidden      = True,
         ))
+
+
 
     def setupFastDacWaveform(self, first, last, step) :
         self.FastDac.WFEnabled.set(True)
