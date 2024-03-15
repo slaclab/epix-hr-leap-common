@@ -69,7 +69,7 @@ entity AsicTop is
       eventRst             : out   sl;
       eventTrigMsgMasters  : in    AxiStreamMasterArray(1 downto 0);
       eventTrigMsgSlaves   : out   AxiStreamSlaveArray(1 downto 0);
-      eventTrigMsgCtrl     : out   AxiStreamCtrlArray(1 downto 0) := (others => AXI_STREAM_CTRL_UNUSED_C);
+      eventTrigMsgCtrl     : in    AxiStreamCtrlArray(1 downto 0);
       eventTimingMsgMasters: in    AxiStreamMasterArray(1 downto 0);
       eventTimingMsgSlaves : out   AxiStreamSlaveArray(1 downto 0);
       clearReadout         : in    slv(1 downto 0);
@@ -315,7 +315,10 @@ begin
          sAxilWriteMaster  => axilWriteMasters(TRIGCTRL_AXI_INDEX_C),
          sAxilWriteSlave   => axilWriteSlaves(TRIGCTRL_AXI_INDEX_C),
          sAxilReadMaster   => axilReadMasters(TRIGCTRL_AXI_INDEX_C),
-         sAxilReadSlave    => axilReadSlaves(TRIGCTRL_AXI_INDEX_C)
+         sAxilReadSlave    => axilReadSlaves(TRIGCTRL_AXI_INDEX_C),
+
+         runTrigPause      => eventTrigMsgCtrl(0).pause,
+         daqTrigPause      => eventTrigMsgCtrl(1).pause
       );
    
    -------------------------------------------------
