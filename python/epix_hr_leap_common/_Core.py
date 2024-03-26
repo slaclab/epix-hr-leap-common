@@ -22,6 +22,7 @@ class Core(pr.Device):
     def __init__( self,
             sim      = False,
             promProg = False,
+            pgpLaneVc = [1,1,1,1],
         **kwargs):
         super().__init__(**kwargs)
 
@@ -58,14 +59,14 @@ class Core(pr.Device):
             enabled = not sim and not promProg,
         ))
 
-        numVc = [1,1,1,1,1,3,4,4]
-'''
-        for lane in range(8):
+        for lane,vc in enumerate(pgpLaneVc):
+            if(vc == 0):
+                continue
             self.add(pgp.Pgp4AxiL(
                 name    = f'PgpMon[{lane}]',
                 offset  = 0x0100_0000 + 0x0001_0000*lane,
-                numVc   = numVc[lane],
+                numVc   = vc,
                 writeEn = False,
                 enabled = not sim and not promProg,
             ))
-    '''
+
