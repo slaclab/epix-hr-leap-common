@@ -45,31 +45,31 @@ class RegisterControlDualClock(pr.Device):
       self.add(pr.RemoteVariable(name='SyncPolarity',    description='SyncPolarity',      offset=0x00000104, bitSize=1,  bitOffset=0, base=pr.Bool, mode='RW'))
       self.add(pr.RemoteVariable(name='asicRefClockFreq',description='reference clock requency to the ASIC',     offset=0x00000268, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))            
       self.add(pr.RemoteVariable(name='SyncDelay',       description='SyncDelay',         offset=0x00000108, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
-      self.add(pr.LinkVariable(  name='SyncDelay_us',    description='SyncDelay in us',   mode='RO', units='uS', disp='{:1.3f}', linkedGet=self.timeConverter, dependencies = [self.SyncDelay, self.asicRefClockFreq]))
+      self.add(pr.LinkVariable(  name='SyncDelay_us',    description='SyncDelay in us (asicRefClockFreq domain)',   mode='RW', units='uS', disp='{:1.3f}', linkedGet=self.timeConverter, linkedSet=self.reverseTimeConverter, dependencies = [self.SyncDelay, self.asicRefClockFreq]))
       self.add(pr.RemoteVariable(name='SyncWidth',       description='SyncWidth',         offset=0x0000010C, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
       self.add(pr.RemoteVariable(name='SR0Polarity',     description='SR0Polarity',       offset=0x00000110, bitSize=1,  bitOffset=0, base=pr.Bool, mode='RW'))
       self.add(pr.RemoteVariable(name='SR0Delay1',       description='SR0Delay1',         offset=0x00000114, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
-      self.add(pr.LinkVariable(  name='SR0Delay_us',     description='SR0Delay in us',    mode='RO', units='uS', disp='{:1.3f}', linkedGet=self.timeConverter, dependencies = [self.SR0Delay1, self.asicRefClockFreq]))
+      self.add(pr.LinkVariable(  name='SR0Delay_us',     description='SR0Delay in us (asicRefClockFreq domain)',    mode='RW', units='uS', disp='{:1.3f}', linkedGet=self.timeConverter, linkedSet=self.reverseTimeConverter, dependencies = [self.SR0Delay1, self.asicRefClockFreq]))
       self.add(pr.RemoteVariable(name='SR0Width1',       description='SR0Width1',         offset=0x00000118, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
-      self.add(pr.LinkVariable(  name='SR0Width1_us',    description='SR0 width in us',   mode='RO', units='uS', disp='{:1.3f}', linkedGet=self.timeConverter, dependencies = [self.SR0Width1, self.asicRefClockFreq]))
+      self.add(pr.LinkVariable(  name='SR0Width1_us',    description='SR0 width in us (asicRefClockFreq domain)',   mode='RW', units='uS', disp='{:1.3f}', linkedGet=self.timeConverter, linkedSet=self.reverseTimeConverter, dependencies = [self.SR0Width1, self.asicRefClockFreq]))
       self.add(pr.RemoteVariable(name='ePixAdcSHPeriod', description='Period',            offset=0x0000011C, bitSize=16, bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
       self.add(pr.RemoteVariable(name='ePixAdcSHOffset', description='Offset',            offset=0x00000120, bitSize=16, bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
 
       
       self.add(pr.RemoteVariable(name='AcqPolarity',     description='AcqPolarity',       offset=0x00000200, bitSize=1,  bitOffset=0, base=pr.Bool, mode='RW'))
       self.add(pr.RemoteVariable(name='AcqDelay1',       description='AcqDelay',          offset=0x00000204, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
-      self.add(pr.LinkVariable(  name='AcqDelay1_us',    description='AcqDelay in us',    mode='RO', units='uS', disp='{:1.3f}', linkedGet=self.timeConverterAppClock, dependencies = [self.AcqDelay1]))
+      self.add(pr.LinkVariable(  name='AcqDelay1_us',    description='AcqDelay in us (AXI clk domain)',    mode='RW', units='uS', disp='{:1.3f}', linkedGet=self.timeConverterAppClock, linkedSet=self.reverseTimeConverterAppClock, dependencies = [self.AcqDelay1]))
       self.add(pr.RemoteVariable(name='AcqWidth1',       description='AcqWidth',          offset=0x00000208, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
-      self.add(pr.LinkVariable(  name='AcqWidth1_us',    description='AcqDelay in us',    mode='RO', units='uS', disp='{:1.3f}', linkedGet=self.timeConverterAppClock, dependencies = [self.AcqWidth1]))
+      self.add(pr.LinkVariable(  name='AcqWidth1_us',    description='AcqDelay in us (AXI clk domain)',    mode='RW', units='uS', disp='{:1.3f}', linkedGet=self.timeConverterAppClock, linkedSet=self.reverseTimeConverterAppClock, dependencies = [self.AcqWidth1]))
       self.add(pr.RemoteVariable(name='AcqDelay2',       description='AcqDelay',          offset=0x0000020C, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
-      self.add(pr.LinkVariable(  name='AcqDelay2_us',    description='AcqDelay in us',    mode='RO', units='uS', disp='{:1.3f}', linkedGet=self.timeConverterAppClock, dependencies = [self.AcqDelay2]))
+      self.add(pr.LinkVariable(  name='AcqDelay2_us',    description='AcqDelay in us (AXI clk domain)',    mode='RW', units='uS', disp='{:1.3f}', linkedGet=self.timeConverterAppClock, linkedSet=self.reverseTimeConverterAppClock, dependencies = [self.AcqDelay2]))
       self.add(pr.RemoteVariable(name='AcqWidth2',       description='AcqWidth',          offset=0x00000210, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
-      self.add(pr.LinkVariable(  name='AcqWidth2_us',    description='AcqDelay in us',    mode='RO', units='uS', disp='{:1.3f}', linkedGet=self.timeConverterAppClock, dependencies = [self.AcqWidth2]))
+      self.add(pr.LinkVariable(  name='AcqWidth2_us',    description='AcqDelay in us (AXI clk domain)',    mode='RW', units='uS', disp='{:1.3f}', linkedGet=self.timeConverterAppClock, linkedSet=self.reverseTimeConverterAppClock, dependencies = [self.AcqWidth2]))
       self.add(pr.RemoteVariable(name='R0Polarity',      description='Polarity',          offset=0x00000214, bitSize=1,  bitOffset=0, base=pr.Bool, mode='RW'))
       self.add(pr.RemoteVariable(name='R0Delay',         description='Delay',             offset=0x00000218, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
-      self.add(pr.LinkVariable(  name='R0Delay_us',      description='AcqDelay in us',    mode='RO', units='uS', disp='{:1.3f}', linkedGet=self.timeConverterAppClock, dependencies = [self.R0Delay]))
+      self.add(pr.LinkVariable(  name='R0Delay_us',      description='AcqDelay in us (AXI clk domain)',    mode='RW', units='uS', disp='{:1.3f}', linkedGet=self.timeConverterAppClock, linkedSet=self.reverseTimeConverterAppClock, dependencies = [self.R0Delay]))
       self.add(pr.RemoteVariable(name='R0Width',         description='Width',             offset=0x0000021C, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
-      self.add(pr.LinkVariable(  name='R0Width_us',      description='AcqDelay in us',    mode='RO', units='uS', disp='{:1.3f}', linkedGet=self.timeConverterAppClock, dependencies = [self.R0Width]))
+      self.add(pr.LinkVariable(  name='R0Width_us',      description='AcqDelay in us (AXI clk domain)',    mode='RW', units='uS', disp='{:1.3f}', linkedGet=self.timeConverterAppClock, linkedSet=self.reverseTimeConverterAppClock, dependencies = [self.R0Width]))
       self.add(pr.RemoteVariable(name='PPbePolarity',    description='PPbePolarity',      offset=0x00000220, bitSize=1,  bitOffset=0, base=pr.Bool, mode='RW'))
       self.add(pr.RemoteVariable(name='PPbeDelay',       description='PPbeDelay',         offset=0x00000224, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
       self.add(pr.RemoteVariable(name='PPbeWidth',       description='PPbeWidth',         offset=0x00000228, bitSize=32, bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
@@ -125,12 +125,27 @@ class RegisterControlDualClock(pr.Device):
       return ((1/freq) * raw * 1e+6)
 
    @staticmethod   
+   def reverseTimeConverter(var, value):
+      freq = var.dependencies[1].value()
+      var.dependencies[0].set(int(value/(1e+6/freq)))
+      return value
+   
+
+   @staticmethod   
    def timeConverterAppClock(var):
       """Converts a number of cycles in micro seconds."""
       raw = var.dependencies[0].value()
       #freq 156.25MHz
       return (raw / 156.25)
 
+   @staticmethod   
+   def reverseTimeConverterAppClock(var, value):
+      """Converts micro seconds to cycles."""
+      uS = value
+
+      #freq 156.25MHz
+      var.dependencies[0].set(int(uS * 156.25))
+      return value
 
    @staticmethod   
    def frequencyConverter(self):
