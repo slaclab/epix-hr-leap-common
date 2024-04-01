@@ -117,34 +117,34 @@ class RegisterControlDualClock(pr.Device):
       # The command object and the arg are passed
 
    @staticmethod   
-   def timeConverter(var):
-      raw = var.dependencies[0].value()
-      freq = var.dependencies[1].value()
+   def timeConverter(var, read):
+      raw = var.dependencies[0].get(read=read)
+      freq = var.dependencies[1].get(read=read)
       if freq == 0:
           freq = 1
       return ((1/freq) * raw * 1e+6)
 
    @staticmethod   
-   def reverseTimeConverter(var, value):
+   def reverseTimeConverter(var, value, write):
       freq = var.dependencies[1].value()
-      var.dependencies[0].set(int(value/(1e+6/freq)))
+      var.dependencies[0].set(value=int(value/(1e+6/freq)), write=write)
       return value
    
 
    @staticmethod   
-   def timeConverterAppClock(var):
+   def timeConverterAppClock(var, read):
       """Converts a number of cycles in micro seconds."""
-      raw = var.dependencies[0].value()
+      raw = var.dependencies[0].get(read=read)
       #freq 156.25MHz
       return (raw / 156.25)
 
    @staticmethod   
-   def reverseTimeConverterAppClock(var, value):
+   def reverseTimeConverterAppClock(var, value, write):
       """Converts micro seconds to cycles."""
       uS = value
 
       #freq 156.25MHz
-      var.dependencies[0].set(int(uS * 156.25))
+      var.dependencies[0].set(value = int(uS * 156.25), write=write)
       return value
 
    @staticmethod   
