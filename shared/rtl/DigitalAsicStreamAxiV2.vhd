@@ -83,61 +83,68 @@ architecture RTL of DigitalAsicStreamAxiV2 is
    type StateType is (IDLE_S, WAIT_SOF_S, HDR_S, DATA_S, TIMEOUT_S);
    
    type RegType is record
-      state          : StateType;
-      stateD1        : StateType;
-      disableLane    : slv(LANES_NO_G-1 downto 0);
-      enumDisLane    : slv(LANES_NO_G-1 downto 0);
-      gainBitRemap   : slv(LANES_NO_G-1 downto 0);
-      dataReqLane    : slv(15 downto 0);
-      dataCntLane    : Slv16Array(LANES_NO_G-1 downto 0);
-      dataCntLaneReg : Slv16Array(LANES_NO_G-1 downto 0);
-      dataCntLaneMin : Slv16Array(LANES_NO_G-1 downto 0);
-      dataCntLaneMax : Slv16Array(LANES_NO_G-1 downto 0);
-      dataDlyLane    : Slv16Array(LANES_NO_G-1 downto 0);
-      dataDlyLaneReg : Slv16Array(LANES_NO_G-1 downto 0);
-      dataOvfLane    : Slv16Array(LANES_NO_G-1 downto 0);
-      stCnt          : slv(15 downto 0);
-      frmSize        : slv(15 downto 0);
-      frmMax         : slv(15 downto 0);
-      frmMin         : slv(15 downto 0);
-      timeoutCntLane : Slv16Array(LANES_NO_G-1 downto 0);
-      acqNo          : Slv32Array(1 downto 0);
-      frmCnt         : slv(31 downto 0); 
-      rstCnt         : sl;
-      startRdSync    : slv(3 downto 0);
-      dFifoRd        : slv(LANES_NO_G-1 downto 0);
-      txMaster       : AxiStreamMasterType;
-      axilWriteSlave : AxiLiteWriteSlaveType;
-      axilReadSlave  : AxiLiteReadSlaveType;
+      state              : StateType;
+      stateD1            : StateType;
+      disableLane        : slv(LANES_NO_G-1 downto 0);
+      enumDisLane        : slv(LANES_NO_G-1 downto 0);
+      gainBitRemap       : slv(LANES_NO_G-1 downto 0);
+      dataReqLane        : slv(15 downto 0);
+      dataCntLane        : Slv16Array(LANES_NO_G-1 downto 0);
+      dataCntLaneReg     : Slv16Array(LANES_NO_G-1 downto 0);
+      dataCntLaneMin     : Slv16Array(LANES_NO_G-1 downto 0);
+      dataCntLaneMax     : Slv16Array(LANES_NO_G-1 downto 0);
+      dataDlyLane        : Slv16Array(LANES_NO_G-1 downto 0);
+      dataDlyLaneReg     : Slv16Array(LANES_NO_G-1 downto 0);
+      dataOvfLane        : Slv16Array(LANES_NO_G-1 downto 0);
+      stCnt              : slv(15 downto 0);
+      frmSize            : slv(15 downto 0);
+      frmMax             : slv(15 downto 0);
+      frmMin             : slv(15 downto 0);
+      timeoutCntLane     : Slv16Array(LANES_NO_G-1 downto 0);
+      acqNo              : Slv32Array(1 downto 0);
+      frmCnt             : slv(31 downto 0); 
+      rstCnt             : sl;
+      startRdSync        : slv(3 downto 0);
+      dFifoRd            : slv(LANES_NO_G-1 downto 0);
+      fillOnFailEn       : sl;
+      TempdisableLane    : slv(LANES_NO_G-1 downto 0);
+      fillOnFailCnt      : slv(31 downto 0); 
+      fillOnFailCntLane  : Slv16Array(LANES_NO_G-1 downto 0);      
+      txMaster           : AxiStreamMasterType;
+      axilWriteSlave     : AxiLiteWriteSlaveType;
+      axilReadSlave      : AxiLiteReadSlaveType;
    end record;
 
    constant REG_INIT_C : RegType := (
-      state          => IDLE_S,
-      stateD1        => IDLE_S,
-      disableLane    => (others=>'0'),
-      enumDisLane    => (others=>'0'),
-      gainBitRemap   => (others=>'1'),
-      dataReqLane    => (others=>'0'),
-      dataCntLane    => (others=>(others=>'0')),
-      dataCntLaneReg => (others=>(others=>'0')),
-      dataCntLaneMin => (others=>(others=>'1')),
-      dataCntLaneMax => (others=>(others=>'0')),
-      dataDlyLane    => (others=>(others=>'0')),
-      dataDlyLaneReg => (others=>(others=>'0')),
-      dataOvfLane    => (others=>(others=>'0')),
-      stCnt          => (others=>'0'),
-      frmSize        => (others=>'0'),
-      frmMax         => (others=>'0'),
-      frmMin         => (others=>'1'),
-      timeoutCntLane => (others=>(others=>'0')),
-      acqNo          => (others=>(others=>'0')),
-      frmCnt         => (others=>'0'),
-      rstCnt         => '0',
-      startRdSync    => (others=>'0'),
-      dFifoRd        => (others=>'0'),
-      txMaster       => AXI_STREAM_MASTER_INIT_C,
-      axilWriteSlave => AXI_LITE_WRITE_SLAVE_INIT_C,
-      axilReadSlave  => AXI_LITE_READ_SLAVE_INIT_C
+      state                => IDLE_S,
+      stateD1              => IDLE_S,
+      disableLane          => (others=>'0'),
+      enumDisLane          => (others=>'0'),
+      gainBitRemap         => (others=>'1'),
+      dataReqLane          => (others=>'0'),
+      dataCntLane          => (others=>(others=>'0')),
+      dataCntLaneReg       => (others=>(others=>'0')),
+      dataCntLaneMin       => (others=>(others=>'1')),
+      dataCntLaneMax       => (others=>(others=>'0')),
+      dataDlyLane          => (others=>(others=>'0')),
+      dataDlyLaneReg       => (others=>(others=>'0')),
+      dataOvfLane          => (others=>(others=>'0')),
+      fillOnFailCntLane    => (others=>(others=>'0')),
+      stCnt                => (others=>'0'),
+      frmSize              => (others=>'0'),
+      frmMax               => (others=>'0'),
+      frmMin               => (others=>'1'),
+      timeoutCntLane       => (others=>(others=>'0')),
+      acqNo                => (others=>(others=>'0')),
+      frmCnt               => (others=>'0'),
+      rstCnt               => '0',
+      fillOnFailEn         => '0',
+      fillOnFailCnt        => (others=>'0'),
+      startRdSync          => (others=>'0'),
+      dFifoRd              => (others=>'0'),
+      txMaster             => AXI_STREAM_MASTER_INIT_C,
+      axilWriteSlave       => AXI_LITE_WRITE_SLAVE_INIT_C,
+      axilReadSlave        => AXI_LITE_READ_SLAVE_INIT_C
    );
    
    signal r   : RegType := REG_INIT_C;
@@ -340,6 +347,8 @@ begin
       axiSlaveRegister (regCon, x"02C",  0, v.disableLane);
       axiSlaveRegister (regCon, x"030",  0, v.enumDisLane);
       axiSlaveRegister (regCon, x"034",  0, v.gainBitRemap);
+      axiSlaveRegister (regCon, x"038",  0, v.fillOnFailEn);
+      axiSlaveRegister (regCon, x"040",  0, v.fillOnFailCnt);
       
       for i in 0 to (LANES_NO_G-1) loop
          axiSlaveRegisterR(regCon, x"100"+toSlv(i*4,12),  0, r.timeoutCntLane(i));
@@ -349,6 +358,7 @@ begin
          axiSlaveRegisterR(regCon, x"500"+toSlv(i*4,12),  0, r.dataCntLaneMax(i));
          axiSlaveRegisterR(regCon, x"600"+toSlv(i*4,12),  0, r.dataDlyLaneReg(i));
          axiSlaveRegisterR(regCon, x"700"+toSlv(i*4,12),  0, r.dataOvfLane(i));
+         axiSlaveRegisterR(regCon, x"800"+toSlv(i*4,12),  0, r.fillOnFailCntLane(i));
       end loop;
       
       axiSlaveDefault(regCon, v.axilWriteSlave, v.axilReadSlave, AXIL_ERR_RESP_G);
@@ -398,7 +408,7 @@ begin
                v.state := HDR_S;
             end if;
             v.stCnt := (others=>'0');
-           
+            
          when HDR_S =>
             ------------------------------------------------------------------
             -- HEADER
@@ -414,6 +424,7 @@ begin
             end if;
              
          when DATA_S =>
+            -- if comb valid is set to 0, means that ready is 1
             if ((dFifoValid or r.disableLane) = VECTOR_OF_ONES_C(LANES_NO_G-1 downto 0)) and v.txMaster.tValid = '0' then
                
                v.txMaster.tValid := '1';
@@ -501,8 +512,10 @@ begin
             v.dataDlyLane(i)     := (others=>'0');
          elsif startRdSync = '1' then
             v.dataDlyLane(i) := (others=>'0');
+         -- Register data only on time of transition out of WAIT_SOF_S state
          elsif (r.stateD1 = WAIT_SOF_S and r.state /= WAIT_SOF_S) then
             v.dataDlyLaneReg(i) := r.dataDlyLane(i);
+         -- Check if there is not data on that lane in this cycle (only significant in WAIT_SOF_S state)
          elsif dFifoSof(i) = '0' and r.dataDlyLane(i) /= x"ffff" then
             v.dataDlyLane(i) := r.dataDlyLane(i) + 1;
          end if;
