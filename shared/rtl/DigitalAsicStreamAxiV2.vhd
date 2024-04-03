@@ -17,6 +17,7 @@ LIBRARY ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_arith.all;
 use ieee.std_logic_unsigned.all;
+use ieee.std_logic_misc.all;
 
 library surf;
 use surf.StdRtlPkg.all;
@@ -143,6 +144,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       fillOnFailEn         => '0',
       fillOnFailCnt        => (others=>'0'),
       fillOnFailTimeout    => (others=>'0'),
+      tempDisableLane      => (others=>'0'),
       fillOnFailTimeoutCntr=> (others=>'0'),
       startRdSync          => (others=>'0'),
       dFifoRd              => (others=>'0'),
@@ -311,7 +313,7 @@ begin
       
       dataExt : process(dFifoOut, r.disableLane, r.enumDisLane)
       begin
-         if r.disableLane(i) = '1' or (r.fillOnFailEn and r.tempDisableLane(i)) then
+         if r.disableLane(i) = '1' or (r.fillOnFailEn = '1' and r.tempDisableLane(i) = '1') then
             if r.enumDisLane(i) = '0' then
                dFifoExtData(16*i+15 downto 16*i) <= (others => '0');
             else
@@ -356,7 +358,7 @@ begin
       axiSlaveRegister (regCon, x"038",  0, v.fillOnFailEn);
       axiSlaveRegister (regCon, x"044",  0, v.fillOnFailTimeout);
       axiSlaveRegisterR(regCon, x"040",  0, r.fillOnFailCnt);
-            
+
       for i in 0 to (LANES_NO_G-1) loop
          axiSlaveRegisterR(regCon, x"100"+toSlv(i*4,12),  0, r.timeoutCntLane(i));
          axiSlaveRegisterR(regCon, x"200"+toSlv(i*4,12),  0, r.dataCntLane(i));
@@ -419,7 +421,7 @@ begin
                v.state := HDR_S;
                v.fillOnFailTimeoutCntr := (others => '0');
                -- 
-               if (r.fillOnFailEn and or_reduce(r.tempDisableLane)) then
+               if (r.fillOnFailEn = '1' and or_reduce(r.tempDisableLane) = '1') then
                   v.fillOnFailCnt := r.fillOnFailCnt + 1;
                end if;
             else -- If not transitioning to next state, count one to fillOnFail counter
@@ -508,7 +510,7 @@ begin
             if v.txMaster.tValid = '0' then
                v.txMaster.tLast := '1';
                v.txMaster.tValid := '1';
-               v.fillOnFailCnt := '0';
+               v.fillOnFailCnt := (others => '0');
                v.tempDisableLane := (others => '0');
                v.fillOnFailTimeoutCntr := (others => '0');
                ssiSetUserEofe(AXI_STREAM_CONFIG_I_C, v.txMaster, '1');
