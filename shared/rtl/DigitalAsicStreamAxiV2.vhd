@@ -83,36 +83,38 @@ architecture RTL of DigitalAsicStreamAxiV2 is
    type StateType is (IDLE_S, WAIT_SOF_S, HDR_S, DATA_S, TIMEOUT_S);
    
    type RegType is record
-      state              : StateType;
-      stateD1            : StateType;
-      disableLane        : slv(LANES_NO_G-1 downto 0);
-      enumDisLane        : slv(LANES_NO_G-1 downto 0);
-      gainBitRemap       : slv(LANES_NO_G-1 downto 0);
-      dataReqLane        : slv(15 downto 0);
-      dataCntLane        : Slv16Array(LANES_NO_G-1 downto 0);
-      dataCntLaneReg     : Slv16Array(LANES_NO_G-1 downto 0);
-      dataCntLaneMin     : Slv16Array(LANES_NO_G-1 downto 0);
-      dataCntLaneMax     : Slv16Array(LANES_NO_G-1 downto 0);
-      dataDlyLane        : Slv16Array(LANES_NO_G-1 downto 0);
-      dataDlyLaneReg     : Slv16Array(LANES_NO_G-1 downto 0);
-      dataOvfLane        : Slv16Array(LANES_NO_G-1 downto 0);
-      stCnt              : slv(15 downto 0);
-      frmSize            : slv(15 downto 0);
-      frmMax             : slv(15 downto 0);
-      frmMin             : slv(15 downto 0);
-      timeoutCntLane     : Slv16Array(LANES_NO_G-1 downto 0);
-      acqNo              : Slv32Array(1 downto 0);
-      frmCnt             : slv(31 downto 0); 
-      rstCnt             : sl;
-      startRdSync        : slv(3 downto 0);
-      dFifoRd            : slv(LANES_NO_G-1 downto 0);
-      fillOnFailEn       : sl;
-      tempDisableLane    : slv(LANES_NO_G-1 downto 0);
-      fillOnFailCnt      : slv(31 downto 0); 
-      fillOnFailCntLane  : Slv16Array(LANES_NO_G-1 downto 0);      
-      txMaster           : AxiStreamMasterType;
-      axilWriteSlave     : AxiLiteWriteSlaveType;
-      axilReadSlave      : AxiLiteReadSlaveType;
+      state                 : StateType;
+      stateD1               : StateType;
+      disableLane           : slv(LANES_NO_G-1 downto 0);
+      enumDisLane           : slv(LANES_NO_G-1 downto 0);
+      gainBitRemap          : slv(LANES_NO_G-1 downto 0);
+      dataReqLane           : slv(15 downto 0);
+      dataCntLane           : Slv16Array(LANES_NO_G-1 downto 0);
+      dataCntLaneReg        : Slv16Array(LANES_NO_G-1 downto 0);
+      dataCntLaneMin        : Slv16Array(LANES_NO_G-1 downto 0);
+      dataCntLaneMax        : Slv16Array(LANES_NO_G-1 downto 0);
+      dataDlyLane           : Slv16Array(LANES_NO_G-1 downto 0);
+      dataDlyLaneReg        : Slv16Array(LANES_NO_G-1 downto 0);
+      dataOvfLane           : Slv16Array(LANES_NO_G-1 downto 0);
+      stCnt                 : slv(15 downto 0);
+      frmSize               : slv(15 downto 0);
+      frmMax                : slv(15 downto 0);
+      frmMin                : slv(15 downto 0);
+      timeoutCntLane        : Slv16Array(LANES_NO_G-1 downto 0);
+      acqNo                 : Slv32Array(1 downto 0);
+      frmCnt                : slv(31 downto 0); 
+      rstCnt                : sl;
+      startRdSync           : slv(3 downto 0);
+      dFifoRd               : slv(LANES_NO_G-1 downto 0);
+      fillOnFailEn          : sl;
+      tempDisableLane       : slv(LANES_NO_G-1 downto 0);
+      fillOnFailCnt         : slv(31 downto 0); 
+      fillOnFailCntLane     : Slv16Array(LANES_NO_G-1 downto 0);      
+      fillOnFailTimeout     : slv(31 downto 0); 
+      fillOnFailTimeoutCntr : slv(31 downto 0); 
+      txMaster              : AxiStreamMasterType;
+      axilWriteSlave        : AxiLiteWriteSlaveType;
+      axilReadSlave         : AxiLiteReadSlaveType;
    end record;
 
    constant REG_INIT_C : RegType := (
@@ -140,6 +142,8 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       rstCnt               => '0',
       fillOnFailEn         => '0',
       fillOnFailCnt        => (others=>'0'),
+      fillOnFailTimeout    => (others=>'0'),
+      fillOnFailTimeoutCntr=> (others=>'0'),
       startRdSync          => (others=>'0'),
       dFifoRd              => (others=>'0'),
       txMaster             => AXI_STREAM_MASTER_INIT_C,
@@ -350,8 +354,9 @@ begin
       axiSlaveRegister (regCon, x"030",  0, v.enumDisLane);
       axiSlaveRegister (regCon, x"034",  0, v.gainBitRemap);
       axiSlaveRegister (regCon, x"038",  0, v.fillOnFailEn);
-      axiSlaveRegister (regCon, x"040",  0, v.fillOnFailCnt);
-      
+      axiSlaveRegister (regCon, x"044",  0, v.fillOnFailTimeout);
+      axiSlaveRegisterR(regCon, x"040",  0, r.fillOnFailCnt);
+            
       for i in 0 to (LANES_NO_G-1) loop
          axiSlaveRegisterR(regCon, x"100"+toSlv(i*4,12),  0, r.timeoutCntLane(i));
          axiSlaveRegisterR(regCon, x"200"+toSlv(i*4,12),  0, r.dataCntLane(i));
@@ -387,7 +392,7 @@ begin
 
             -- reset temporary disable for autofill on failure
             v.tempDisableLane := (others => '0');
-            v.fillOnFailCnt   := '0';
+            v.fillOnFailTimeoutCntr := (others => '0');
             if startRdSync = '1' then
                v.state := WAIT_SOF_S;
             end if;
@@ -402,20 +407,35 @@ begin
                end if;             
             end loop;
             
-            -- next SRO while waiting for previous SOF
+            -- next SRO while waiting for previous SOF. Too late to recover using autoFillOnFailure
             for i in 0 to (LANES_NO_G-1) loop
                if startRdSync = '1' and dFifoSof(i) = '0' then
-                  -- v.timeoutCntLane(i) := r.timeoutCntLane(i) + 1;
-                  v.tempDisableLane(i) := '1';
-                  v.fillOnFailCntLane(i) := r.fillOnFailCntLane(i) + 1;
-                  v.fillOnFailCnt := '1';
-               end if;
+                  v.timeoutCntLane(i) := r.timeoutCntLane(i) + 1;
+                end if;
             end loop;
             
             if ((dFifoSof(LANES_NO_G-1 downto 0) or r.disableLane or (fillOnFailEnV and r.tempDisableLane)) = VECTOR_OF_ONES_C(LANES_NO_G-1 downto 0)) then
                v.acqNo(1) := r.acqNo(0);
                v.state := HDR_S;
+               v.fillOnFailTimeoutCntr := (others => '0');
+               -- 
+               if (r.fillOnFailEn and or_reduce(r.tempDisableLane)) then
+                  v.fillOnFailCnt := r.fillOnFailCnt + 1;
+               end if;
+            else -- If not transitioning to next state, count one to fillOnFail counter
+               v.fillOnFailTimeoutCntr := r.fillOnFailTimeoutCntr + 1;
             end if;
+
+            -- reach limit to fill on fail counter, disable lane temporarily for this image
+            if (r.fillOnFailTimeoutCntr >= r.fillOnFailTimeout) then
+               for i in 0 to (LANES_NO_G-1) loop
+                  if dFifoSof(i) = '0' and r.disableLane(i) = '0' then
+                     v.tempDisableLane(i) := '1';
+                     v.fillOnFailCntLane(i) := r.fillOnFailCntLane(i) + 1;
+                  end if;
+               end loop;
+            end if;
+
             v.stCnt := (others=>'0');
             
          when HDR_S =>
@@ -427,11 +447,12 @@ begin
                v.state := DATA_S;
                v.txMaster.tData(31 downto  0) := x"0000" & x"00" & LANE_NO_G & VC_NO_G;
                v.txMaster.tData(63 downto 32) := r.acqNo(1)(31 downto 0);
-               v.txMaster.tData(79 downto 64) := x"000" & r.fillOnFailCnt & ASIC_NO_G;
+               v.txMaster.tData(79 downto 64) := x"000" & or_reduce(r.tempDisableLane) & ASIC_NO_G;
                v.txMaster.tData(95 downto 80) := x"0000";
                ssiSetUserSof(AXI_STREAM_CONFIG_I_C, v.txMaster, '1');
             end if;
-             
+            -- No fillOnFail handling here
+
          when DATA_S =>
             -- if comb valid is set to 0, means that ready is 1
             if ((dFifoValid or r.disableLane) = VECTOR_OF_ONES_C(LANES_NO_G-1 downto 0)) and v.txMaster.tValid = '0' then
@@ -439,6 +460,8 @@ begin
                v.txMaster.tValid := '1';
                v.txMaster.tData(16*LANES_NO_G-1 downto 0) := dFifoExtData;
                --v.txMaster.tData(16*LANES_NO_G-1 downto 0) := x"0000_0001_0002_0003_0004_0005_0006_0007_0008_0009_000A"  & r.stCnt;
+               
+               v.fillOnFailTimeoutCntr := (others => '0');
                
                v.dFifoRd := (others=>'1');
                            
@@ -469,6 +492,16 @@ begin
                      v.timeoutCntLane(i) := r.timeoutCntLane(i) + 1;
                   end if;
                end loop;
+            else -- if non of the above, increment fill on fail counter
+               v.fillOnFailTimeoutCntr := r.fillOnFailTimeoutCntr + 1;
+               if (r.fillOnFailTimeoutCntr >= r.fillOnFailTimeout) then
+                  for i in 0 to (LANES_NO_G-1) loop
+                     if dFifoSof(i) = '0' and r.disableLane(i) = '0' then
+                        v.tempDisableLane(i) := '1';
+                        v.fillOnFailCntLane(i) := r.fillOnFailCntLane(i) + 1;
+                     end if;
+                  end loop;
+               end if;               
             end if;
          
          when TIMEOUT_S =>
@@ -477,6 +510,7 @@ begin
                v.txMaster.tValid := '1';
                v.fillOnFailCnt := '0';
                v.tempDisableLane := (others => '0');
+               v.fillOnFailTimeoutCntr := (others => '0');
                ssiSetUserEofe(AXI_STREAM_CONFIG_I_C, v.txMaster, '1');
                v.state := WAIT_SOF_S;
             end if;
@@ -486,11 +520,13 @@ begin
       
       -- reset counters
       if r.rstCnt = '1' then
-         v.frmCnt          := (others=>'0');
-         v.frmSize         := (others=>'0');
-         v.frmMax          := (others=>'0');
-         v.frmMin          := (others=>'1');
-         v.timeoutCntLane  := (others=>(others=>'0'));
+         v.frmCnt            := (others=>'0');
+         v.frmSize           := (others=>'0');
+         v.frmMax            := (others=>'0');
+         v.frmMin            := (others=>'1');
+         v.timeoutCntLane    := (others=>(others=>'0'));
+         v.fillOnFailCntLane := (others=>(others=>'0'));
+         v.fillOnFailCnt     := (others=>'0');
       end if;
       
       -- counters on the write side of the lane's buffer FIFO
@@ -537,7 +573,7 @@ begin
          elsif rxFull(i) = '1' and rxValid(i) = '1' and r.dataOvfLane(i) /= x"ffff" then
             v.dataOvfLane(i) := r.dataOvfLane(i) + 1;
          end if;
-         
+
       end loop;
 
       -- reset logic      
