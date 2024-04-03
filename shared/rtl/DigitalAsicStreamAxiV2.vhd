@@ -407,7 +407,7 @@ begin
                if startRdSync = '1' and dFifoSof(i) = '0' then
                   -- v.timeoutCntLane(i) := r.timeoutCntLane(i) + 1;
                   v.tempDisableLane(i) := '1';
-                  v.fillOnFailCntLane(i) := r.fillOnFailCntLane(i) + 1
+                  v.fillOnFailCntLane(i) := r.fillOnFailCntLane(i) + 1;
                   v.fillOnFailCnt := '1';
                end if;
             end loop;
