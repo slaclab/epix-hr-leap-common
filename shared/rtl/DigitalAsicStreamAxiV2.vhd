@@ -387,6 +387,7 @@ begin
 
             -- reset temporary disable for autofill on failure
             v.tempDisableLane := (others => '0');
+            v.fillOnFailCnt   := '0';
             if startRdSync = '1' then
                v.state := WAIT_SOF_S;
             end if;
@@ -407,6 +408,7 @@ begin
                   -- v.timeoutCntLane(i) := r.timeoutCntLane(i) + 1;
                   v.tempDisableLane(i) := '1';
                   v.fillOnFailCntLane(i) := r.fillOnFailCntLane(i) + 1
+                  v.fillOnFailCnt := '1';
                end if;
             end loop;
             
@@ -425,7 +427,7 @@ begin
                v.state := DATA_S;
                v.txMaster.tData(31 downto  0) := x"0000" & x"00" & LANE_NO_G & VC_NO_G;
                v.txMaster.tData(63 downto 32) := r.acqNo(1)(31 downto 0);
-               v.txMaster.tData(79 downto 64) := x"000" & '0' & ASIC_NO_G;
+               v.txMaster.tData(79 downto 64) := x"000" & r.fillOnFailCnt & ASIC_NO_G;
                v.txMaster.tData(95 downto 80) := x"0000";
                ssiSetUserSof(AXI_STREAM_CONFIG_I_C, v.txMaster, '1');
             end if;
@@ -473,6 +475,7 @@ begin
             if v.txMaster.tValid = '0' then
                v.txMaster.tLast := '1';
                v.txMaster.tValid := '1';
+               v.fillOnFailCnt := '0';
                v.tempDisableLane := (others => '0');
                ssiSetUserEofe(AXI_STREAM_CONFIG_I_C, v.txMaster, '1');
                v.state := WAIT_SOF_S;
