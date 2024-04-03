@@ -107,7 +107,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       startRdSync        : slv(3 downto 0);
       dFifoRd            : slv(LANES_NO_G-1 downto 0);
       fillOnFailEn       : sl;
-      TempdisableLane    : slv(LANES_NO_G-1 downto 0);
+      tempDisableLane    : slv(LANES_NO_G-1 downto 0);
       fillOnFailCnt      : slv(31 downto 0); 
       fillOnFailCntLane  : Slv16Array(LANES_NO_G-1 downto 0);      
       txMaster           : AxiStreamMasterType;
@@ -307,7 +307,7 @@ begin
       
       dataExt : process(dFifoOut, r.disableLane, r.enumDisLane)
       begin
-         if r.disableLane(i) = '1' then
+         if r.disableLane(i) = '1' or (r.fillOnFailEn and r.tempDisableLane(i)) then
             if r.enumDisLane(i) = '0' then
                dFifoExtData(16*i+15 downto 16*i) <= (others => '0');
             else
@@ -323,8 +323,9 @@ begin
 
    comb : process (deserRst, axilReadMaster, axilWriteMaster, txSlave, r, 
       acqNoSync, dFifoExtData, dFifoValid, dFifoSof, dFifoEof, dFifoEofe, startRdSync, rxValid, rxSof, rxEof, rxEofe, rxFull) is
-      variable v        : RegType;
-      variable regCon   : AxiLiteEndPointType;
+      variable v             : RegType;
+      variable regCon        : AxiLiteEndPointType;
+      variable fillOnFailEnV : slv(LANES_NO_G-1 downto 0);
    begin
       v := r;
       
@@ -335,7 +336,8 @@ begin
       v.startRdSync(2) := r.startRdSync(3);
       v.startRdSync(1) := r.startRdSync(2);
       v.startRdSync(0) := r.startRdSync(1);
-      
+      fillOnFailEnV := (others => r.fillOnFailEn);
+
       axiSlaveWaitTxn(regCon, axilWriteMaster, axilReadMaster, v.axilWriteSlave, v.axilReadSlave);
       
       axiSlaveRegisterR(regCon, x"000",  0, r.frmCnt);
@@ -382,6 +384,9 @@ begin
       
       case r.state is
          when IDLE_S =>
+
+            -- reset temporary disable for autofill on failure
+            v.tempDisableLane := (others => '0');
             if startRdSync = '1' then
                v.state := WAIT_SOF_S;
             end if;
@@ -399,11 +404,13 @@ begin
             -- next SRO while waiting for previous SOF
             for i in 0 to (LANES_NO_G-1) loop
                if startRdSync = '1' and dFifoSof(i) = '0' then
-                  v.timeoutCntLane(i) := r.timeoutCntLane(i) + 1;
+                  -- v.timeoutCntLane(i) := r.timeoutCntLane(i) + 1;
+                  v.tempDisableLane(i) := '1';
+                  v.fillOnFailCntLane(i) := r.fillOnFailCntLane(i) + 1
                end if;
             end loop;
             
-            if ((dFifoSof(LANES_NO_G-1 downto 0) or r.disableLane) = VECTOR_OF_ONES_C(LANES_NO_G-1 downto 0)) then
+            if ((dFifoSof(LANES_NO_G-1 downto 0) or r.disableLane or (fillOnFailEnV and r.tempDisableLane)) = VECTOR_OF_ONES_C(LANES_NO_G-1 downto 0)) then
                v.acqNo(1) := r.acqNo(0);
                v.state := HDR_S;
             end if;
@@ -466,6 +473,7 @@ begin
             if v.txMaster.tValid = '0' then
                v.txMaster.tLast := '1';
                v.txMaster.tValid := '1';
+               v.tempDisableLane := (others => '0');
                ssiSetUserEofe(AXI_STREAM_CONFIG_I_C, v.txMaster, '1');
                v.state := WAIT_SOF_S;
             end if;
