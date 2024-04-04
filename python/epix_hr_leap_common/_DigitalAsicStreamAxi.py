@@ -16,14 +16,18 @@ class DigitalAsicStreamAxi(pr.Device):
       
       #Setup registers & variables
       
-      self.add(pr.RemoteVariable(name='FrameCount',      description='FrameCount',                                  offset=0x00000000, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
-      self.add(pr.RemoteVariable(name='FrameSize',       description='FrameSize',                                   offset=0x00000004, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
-      self.add(pr.RemoteVariable(name='FrameMaxSize',    description='FrameMaxSize',                                offset=0x00000008, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
-      self.add(pr.RemoteVariable(name='FrameMinSize',    description='FrameMinSize',                                offset=0x0000000C, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
-      #self.add(pr.RemoteVariable(name='ResetCounters',   description='ResetCounters',                               offset=0x00000024, bitSize=1,   bitOffset=0, base=pr.Bool, mode='WO'))
-      self.add(pr.RemoteVariable(name='asicDataReq',     description='Number of samples requested per ADC stream.', offset=0x00000028, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
-      self.add(pr.RemoteVariable(name='DisableLane',     description='Disable selected lanes.',                     offset=0x0000002C, bitSize=numberLanes,  bitOffset=0, base=pr.UInt, mode='RW'))
-      self.add(pr.RemoteVariable(name='EnumerateDisLane',description='Insert lane number into disabled lane.',      offset=0x00000030, bitSize=numberLanes,  bitOffset=0, base=pr.UInt, mode='RW'))
+      self.add(pr.RemoteVariable(name='FrameCount',        description='FrameCount',                                  offset=0x00000000, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
+      self.add(pr.RemoteVariable(name='FrameSize',         description='FrameSize',                                   offset=0x00000004, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
+      self.add(pr.RemoteVariable(name='FrameMaxSize',      description='FrameMaxSize',                                offset=0x00000008, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
+      self.add(pr.RemoteVariable(name='FrameMinSize',      description='FrameMinSize',                                offset=0x0000000C, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
+      #self.add(pr.RemoteVariable(name='ResetCounters',     description='ResetCounters',                               offset=0x00000024, bitSize=1,   bitOffset=0, base=pr.Bool, mode='WO'))
+      self.add(pr.RemoteVariable(name='asicDataReq',       description='Number of samples requested per ADC stream.', offset=0x00000028, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
+      self.add(pr.RemoteVariable(name='DisableLane',       description='Disable selected lanes.',                     offset=0x0000002C, bitSize=numberLanes,  bitOffset=0, base=pr.UInt, mode='RW'))
+      self.add(pr.RemoteVariable(name='EnumerateDisLane',  description='Insert lane number into disabled lane.',      offset=0x00000030, bitSize=numberLanes,  bitOffset=0, base=pr.UInt, mode='RW'))
+
+      self.add(pr.RemoteVariable(name='fillOnFailEn',      description='Dynamically handles failing lanes, inserts 0s',offset=0x00000038, bitSize=1,   bitOffset=0, base=pr.UInt, mode='RW'))
+      self.add(pr.RemoteVariable(name='fillOnFailTimeout', description='Timeout value for fill-on-fail',               offset=0x0000003C, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RW'))
+      self.add(pr.RemoteVariable(name='fillOnFailCnt',     description='images where fill-on-fail was activated',      offset=0x00000040, bitSize=16,  bitOffset=0, base=pr.UInt, mode='RO'))
 
       
       self.addRemoteVariables(
@@ -95,6 +99,17 @@ class DigitalAsicStreamAxi(pr.Device):
       self.addRemoteVariables(
          name         = 'DataOvfLane',
          offset       = 0x700,
+         bitSize      = 16,
+         mode         = 'RO',
+         number       = numberLanes,
+         stride       = 4,
+         pollInterval = 1,
+         disp         = '{}', 
+      )
+
+      self.addRemoteVariables(
+         name         = 'fillOnFailCntLane',
+         offset       = 0x800,
          bitSize      = 16,
          mode         = 'RO',
          number       = numberLanes,

@@ -356,7 +356,7 @@ begin
       axiSlaveRegister (regCon, x"030",  0, v.enumDisLane);
       axiSlaveRegister (regCon, x"034",  0, v.gainBitRemap);
       axiSlaveRegister (regCon, x"038",  0, v.fillOnFailEn);
-      axiSlaveRegister (regCon, x"044",  0, v.fillOnFailTimeout);
+      axiSlaveRegister (regCon, x"03C",  0, v.fillOnFailTimeout);
       axiSlaveRegisterR(regCon, x"040",  0, r.fillOnFailCnt);
 
       for i in 0 to (LANES_NO_G-1) loop
@@ -399,7 +399,7 @@ begin
                v.state := WAIT_SOF_S;
             end if;
             
-            
+         -- condition to enter here is that startRdSync already arrived
          when WAIT_SOF_S =>
          
             --keeps flushing data until all SOF show up
@@ -421,19 +421,17 @@ begin
                v.state := HDR_S;
                v.fillOnFailTimeoutCntr := (others => '0');
                -- 
-               if (r.fillOnFailEn = '1' and or_reduce(r.tempDisableLane) = '1') then
-                  v.fillOnFailCnt := r.fillOnFailCnt + 1;
-               end if;
             else -- If not transitioning to next state, count one to fillOnFail counter
-               v.fillOnFailTimeoutCntr := r.fillOnFailTimeoutCntr + 1;
+               if (r.fillOnFailTimeoutCntr < r.fillOnFailTimeout) then
+                  v.fillOnFailTimeoutCntr := r.fillOnFailTimeoutCntr + 1;
+               end if;
             end if;
 
             -- reach limit to fill on fail counter, disable lane temporarily for this image
             if (r.fillOnFailTimeoutCntr >= r.fillOnFailTimeout) then
                for i in 0 to (LANES_NO_G-1) loop
-                  if dFifoSof(i) = '0' and r.disableLane(i) = '0' then
+                  if dFifoSof(i) = '0' and r.disableLane(i) = '0' and r.fillOnFailEn = '1' then
                      v.tempDisableLane(i) := '1';
-                     v.fillOnFailCntLane(i) := r.fillOnFailCntLane(i) + 1;
                   end if;
                end loop;
             end if;
@@ -485,6 +483,15 @@ begin
                   v.txMaster.tLast := '1';
                   ssiSetUserEofe(AXI_STREAM_CONFIG_I_C, v.txMaster, '0');
                   v.state := IDLE_S;
+
+                  for i in 0 to (LANES_NO_G-1) loop
+                     if r.tempDisableLane(i) = '1' and r.fillOnFailEn = '1' then
+                        v.fillOnFailCntLane(i) := r.fillOnFailCntLane(i) + 1;
+                     end if;
+                  end loop;                  
+                  if (r.fillOnFailEn = '1' and or_reduce(r.tempDisableLane) = '1') then
+                     v.fillOnFailCnt := r.fillOnFailCnt + 1;
+                  end if;
                end if;  
             
             elsif startRdSync = '1' then
@@ -493,16 +500,22 @@ begin
                   if (dFifoValid(i) or r.disableLane(i)) = '0' then
                      v.timeoutCntLane(i) := r.timeoutCntLane(i) + 1;
                   end if;
+                  if r.tempDisableLane(i) = '1' and r.fillOnFailEn = '1' then
+                     v.fillOnFailCntLane(i) := r.fillOnFailCntLane(i) + 1;
+                  end if;
                end loop;
-            else -- if non of the above, increment fill on fail counter
-               v.fillOnFailTimeoutCntr := r.fillOnFailTimeoutCntr + 1;
+               if (r.fillOnFailEn = '1' and or_reduce(r.tempDisableLane) = '1') then
+                  v.fillOnFailCnt := r.fillOnFailCnt + 1;
+               end if;
+            else -- if non of the above, increment fill on fail timeout counter
                if (r.fillOnFailTimeoutCntr >= r.fillOnFailTimeout) then
                   for i in 0 to (LANES_NO_G-1) loop
-                     if dFifoSof(i) = '0' and r.disableLane(i) = '0' then
+                     if dFifoSof(i) = '0' and r.disableLane(i) = '0' and r.fillOnFailEn = '1' then
                         v.tempDisableLane(i) := '1';
-                        v.fillOnFailCntLane(i) := r.fillOnFailCntLane(i) + 1;
                      end if;
                   end loop;
+               else
+                  v.fillOnFailTimeoutCntr := r.fillOnFailTimeoutCntr + 1;
                end if;               
             end if;
          
