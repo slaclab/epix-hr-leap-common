@@ -447,7 +447,7 @@ begin
                v.state := DATA_S;
                v.txMaster.tData(31 downto  0) := x"0000" & x"00" & LANE_NO_G & VC_NO_G;
                v.txMaster.tData(63 downto 32) := r.acqNo(1)(31 downto 0);
-               v.txMaster.tData(79 downto 64) := x"000" & or_reduce(r.tempDisableLane) & ASIC_NO_G;
+               v.txMaster.tData(79 downto 64) := x"000" & (r.fillOnFailEn and or_reduce(r.tempDisableLane)) & ASIC_NO_G;
                v.txMaster.tData(95 downto 80) := x"0000";
                ssiSetUserSof(AXI_STREAM_CONFIG_I_C, v.txMaster, '1');
             end if;
@@ -484,6 +484,7 @@ begin
                   ssiSetUserEofe(AXI_STREAM_CONFIG_I_C, v.txMaster, '0');
                   v.state := IDLE_S;
 
+                  -- Increment monitor registers before exit to IDLE state
                   for i in 0 to (LANES_NO_G-1) loop
                      if r.tempDisableLane(i) = '1' and r.fillOnFailEn = '1' then
                         v.fillOnFailCntLane(i) := r.fillOnFailCntLane(i) + 1;
@@ -496,6 +497,7 @@ begin
             
             elsif startRdSync = '1' then
                v.state := TIMEOUT_S;
+               -- Increment monitor registers before exit to TIMEOUT_S state
                for i in 0 to (LANES_NO_G-1) loop
                   if (dFifoValid(i) or r.disableLane(i)) = '0' then
                      v.timeoutCntLane(i) := r.timeoutCntLane(i) + 1;
@@ -507,7 +509,7 @@ begin
                if (r.fillOnFailEn = '1' and or_reduce(r.tempDisableLane) = '1') then
                   v.fillOnFailCnt := r.fillOnFailCnt + 1;
                end if;
-            else -- if non of the above, increment fill on fail timeout counter
+            else -- if non of the above, increment fill-on-fail timeout counter
                if (r.fillOnFailTimeoutCntr >= r.fillOnFailTimeout) then
                   for i in 0 to (LANES_NO_G-1) loop
                      if dFifoSof(i) = '0' and r.disableLane(i) = '0' and r.fillOnFailEn = '1' then
@@ -523,7 +525,6 @@ begin
             if v.txMaster.tValid = '0' then
                v.txMaster.tLast := '1';
                v.txMaster.tValid := '1';
-               v.fillOnFailCnt := (others => '0');
                v.tempDisableLane := (others => '0');
                v.fillOnFailTimeoutCntr := (others => '0');
                ssiSetUserEofe(AXI_STREAM_CONFIG_I_C, v.txMaster, '1');
