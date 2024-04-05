@@ -21,10 +21,10 @@ class DigitalAsicStreamAxi(pr.Device):
                 3:"DATA_S",
                 4:"TIMEOUT_S"}
 
-      self.add(pr.RemoteVariable(name='FrameCount',        description='Complete frame count',                                  offset=0x00000000, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
-      self.add(pr.RemoteVariable(name='FrameSize',         description='Complete frame size',                                   offset=0x00000004, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
-      self.add(pr.RemoteVariable(name='FrameMaxSize',      description='Max frame size',                                offset=0x00000008, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
-      self.add(pr.RemoteVariable(name='FrameMinSize',      description='Min frame size',                                offset=0x0000000C, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
+      self.add(pr.RemoteVariable(name='FrameCount',        description='Complete frame count',                                  offset=0x00000000, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='FrameSize',         description='Complete frame size',                                   offset=0x00000004, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='FrameMaxSize',      description='Max frame size',                                offset=0x00000008, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='FrameMinSize',      description='Min frame size',                                offset=0x0000000C, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO', pollInterval = 1))
       #self.add(pr.RemoteVariable(name='ResetCounters',     description='ResetCounters',                               offset=0x00000024, bitSize=1,   bitOffset=0, base=pr.Bool, mode='WO'))
       self.add(pr.RemoteVariable(name='asicDataReq',       description='Number of samples requested per ADC stream.', offset=0x00000028, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
       self.add(pr.RemoteVariable(name='DisableLane',       description='Disable selected lanes.',                     offset=0x0000002C, bitSize=numberLanes,  bitOffset=0, base=pr.UInt, mode='RW'))
@@ -37,7 +37,21 @@ class DigitalAsicStreamAxi(pr.Device):
 
       self.add(pr.RemoteVariable(name='fillOnFailLastMask',     description='Last temporary mask used to disable lanes', offset=0x00000048, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', pollInterval = 1))
       self.add(pr.RemoteVariable(name='State',                  description='IDLE_S, WAIT_SOF_S, HDR_S, DATA_S, TIMEOUT_S', offset=0x0000004C, bitSize=8,  bitOffset=0, base=pr.UInt, mode='RO', enum=states, pollInterval = 1))
-                                                                         
+
+      self.add(pr.RemoteVariable(name='wsofStateCntrMin', description='', offset=0x0000005C, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='wsofStateCntrMax', description='', offset=0x00000060, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='wsofStateCntr', description='', offset=0x00000064, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='dataStateCntrMin', description='', offset=0x00000068, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='dataStateCntrMax', description='', offset=0x0000006C, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='dataStateCntr', description='', offset=0x00000070, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='hdrStateCntrMin', description='', offset=0x00000074, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='hdrStateCntrMax', description='', offset=0x00000078, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='hdrStateCntr', description='', offset=0x0000007C, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='frameCyclesCtrMin', description='', offset=0x00000080, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='frameCyclesCntrMax', description='', offset=0x00000084, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='frameCyclesCntr', description='', offset=0x00000088, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+
+
       self.addRemoteVariables(
          name         = 'TimeoutCntLane',
          description  = 'Count of times SM waiting for data till next trigger',
