@@ -18,6 +18,7 @@ use ieee.std_logic_1164.all;
 use ieee.std_logic_arith.all;
 use ieee.std_logic_unsigned.all;
 use ieee.std_logic_misc.all;
+use IEEE.numeric_std.all;
 
 library surf;
 use surf.StdRtlPkg.all;
@@ -109,6 +110,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       dFifoRd               : slv(LANES_NO_G-1 downto 0);
       fillOnFailEn          : sl;
       tempDisableLane       : slv(LANES_NO_G-1 downto 0);
+      fillOnFailLastMask    : slv(LANES_NO_G-1 downto 0);
       fillOnFailCnt         : slv(31 downto 0); 
       fillOnFailCntLane     : Slv16Array(LANES_NO_G-1 downto 0);      
       fillOnFailTimeout     : slv(31 downto 0); 
@@ -145,6 +147,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       fillOnFailCnt        => (others=>'0'),
       fillOnFailTimeout    => (others=>'0'),
       tempDisableLane      => (others=>'0'),
+      fillOnFailLastMask   => (others=>'0'),
       fillOnFailTimeoutCntr=> (others=>'0'),
       startRdSync          => (others=>'0'),
       dFifoRd              => (others=>'0'),
@@ -358,6 +361,10 @@ begin
       axiSlaveRegister (regCon, x"038",  0, v.fillOnFailEn);
       axiSlaveRegister (regCon, x"03C",  0, v.fillOnFailTimeout);
       axiSlaveRegisterR(regCon, x"040",  0, r.fillOnFailCnt);
+      axiSlaveRegisterR(regCon, x"044",  0, r.fillOnFailLastMask);
+      axiSlaveRegisterR(regCon, x"048",  0, std_logic_vector(to_unsigned(StateType'pos(r.state), 8))); 
+      axiSlaveRegisterR(regCon, x"04C",  0, r.stCnt);
+      axiSlaveRegisterR(regCon, x"050",  0, r.fillOnFailTimeoutCntr);
 
       for i in 0 to (LANES_NO_G-1) loop
          axiSlaveRegisterR(regCon, x"100"+toSlv(i*4,12),  0, r.timeoutCntLane(i));
@@ -455,7 +462,7 @@ begin
 
          when DATA_S =>
             -- if comb valid is set to 0, means that ready is 1
-            if ((dFifoValid or r.disableLane) = VECTOR_OF_ONES_C(LANES_NO_G-1 downto 0)) and v.txMaster.tValid = '0' then
+            if ((dFifoValid or r.disableLane or (r.tempDisableLane and fillOnFailEnV)) = VECTOR_OF_ONES_C(LANES_NO_G-1 downto 0)) and v.txMaster.tValid = '0' then
                
                v.txMaster.tValid := '1';
                v.txMaster.tData(16*LANES_NO_G-1 downto 0) := dFifoExtData;
@@ -520,7 +527,8 @@ begin
                   v.fillOnFailTimeoutCntr := r.fillOnFailTimeoutCntr + 1;
                end if;               
             end if;
-         
+            v.fillOnFailLastMask := v.tempDisableLane;
+
          when TIMEOUT_S =>
             if v.txMaster.tValid = '0' then
                v.txMaster.tLast := '1';
