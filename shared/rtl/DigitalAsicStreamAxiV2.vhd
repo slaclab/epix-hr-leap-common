@@ -314,7 +314,7 @@ begin
       dFifoRst <= deserRst or startRdSync;
       
       
-      dataExt : process(dFifoOut, r.disableLane, r.enumDisLane)
+      dataExt : process(dFifoOut, r.disableLane, r.enumDisLane, r.tempDisableLane, r.fillOnFailEn)
       begin
          if r.disableLane(i) = '1' or (r.fillOnFailEn = '1' and r.tempDisableLane(i) = '1') then
             if r.enumDisLane(i) = '0' then
@@ -363,8 +363,6 @@ begin
       axiSlaveRegisterR(regCon, x"040",  0, r.fillOnFailCnt);
       axiSlaveRegisterR(regCon, x"044",  0, r.fillOnFailLastMask);
       axiSlaveRegisterR(regCon, x"048",  0, std_logic_vector(to_unsigned(StateType'pos(r.state), 8))); 
-      axiSlaveRegisterR(regCon, x"04C",  0, r.stCnt);
-      axiSlaveRegisterR(regCon, x"050",  0, r.fillOnFailTimeoutCntr);
 
       for i in 0 to (LANES_NO_G-1) loop
          axiSlaveRegisterR(regCon, x"100"+toSlv(i*4,12),  0, r.timeoutCntLane(i));
