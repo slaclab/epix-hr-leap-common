@@ -30,14 +30,14 @@ class DigitalAsicStreamAxi(pr.Device):
       self.add(pr.RemoteVariable(name='DisableLane',       description='Disable selected lanes.',                     offset=0x0000002C, bitSize=numberLanes,  bitOffset=0, base=pr.UInt, mode='RW'))
       self.add(pr.RemoteVariable(name='EnumerateDisLane',  description='Insert lane number into disabled lane.',      offset=0x00000030, bitSize=numberLanes,  bitOffset=0, base=pr.UInt, mode='RW'))
 
-      self.add(pr.RemoteVariable(name='fillOnFailEn',      description='Dynamically handles failing lanes, inserts 0s',  offset=0x00000038, bitSize=1,   bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
-      self.add(pr.RemoteVariable(name='fillOnFailTimeout', description='Timeout value for fill-on-fail',                 offset=0x0000003C, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
-      self.add(pr.RemoteVariable(name='fillOnFailCnt',     description='No. of images where fill-on-fail was activated', offset=0x00000040, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
+      self.add(pr.RemoteVariable(name='fillOnFailEn',            description='Dynamically handles failing lanes, inserts 0s',  offset=0x00000038, bitSize=1,   bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
+      self.add(pr.RemoteVariable(name='fillOnFailTimeoutOffset', description='Timeout offset value for fill-on-fail without data arrival delay.',                 offset=0x0000003C, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
+      self.add(pr.RemoteVariable(name='fillOnFailTimeout',       description='Timeout value for fill-on-fail',                 offset=0x00000040, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
+      self.add(pr.RemoteVariable(name='fillOnFailCnt',           description='No. of images where fill-on-fail was activated', offset=0x00000044, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
 
-      self.add(pr.RemoteVariable(name='fillOnFailLastMask',     description='Last temporary mask used to disable lanes', offset=0x00000044, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', pollInterval = 1))
-      self.add(pr.RemoteVariable(name='State',                  description='IDLE_S, WAIT_SOF_S, HDR_S, DATA_S, TIMEOUT_S', offset=0x00000048, bitSize=8,  bitOffset=0, base=pr.UInt, mode='RO', enum=states, pollInterval = 1))
-
-      
+      self.add(pr.RemoteVariable(name='fillOnFailLastMask',     description='Last temporary mask used to disable lanes', offset=0x00000048, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='State',                  description='IDLE_S, WAIT_SOF_S, HDR_S, DATA_S, TIMEOUT_S', offset=0x0000004C, bitSize=8,  bitOffset=0, base=pr.UInt, mode='RO', enum=states, pollInterval = 1))
+                                                                         
       self.addRemoteVariables(
          name         = 'TimeoutCntLane',
          description  = 'Count of times SM waiting for data till next trigger',
