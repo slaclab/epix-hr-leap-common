@@ -586,7 +586,7 @@ begin
                v.txMaster.tLast := '1';
                v.state := IDLE_S;
                v.txMaster.tData(31 downto  0) := x"00" & (fillOnFailEnV and r.tempDisableLane);
-               v.txMaster.tKeep  :=  (v.txMaster.tKeep'left downto 24 => '0') & x"ffffff";
+               v.txMaster.tKeep  :=  (v.txMaster.tKeep'left downto 32 => '0') & x"ffffffff";
                ssiSetUserEofe(AXI_STREAM_CONFIG_I_C, v.txMaster, '0');
             end if;
 
