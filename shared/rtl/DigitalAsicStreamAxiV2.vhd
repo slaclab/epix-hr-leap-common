@@ -559,7 +559,7 @@ begin
             else -- if non of the above, increment fill-on-fail timeout counter
                if (r.fillOnFailTimeoutCntr >= r.fillOnFailTimeoutOffset) then
                   for i in 0 to (LANES_NO_G-1) loop
-                     if dFifoSof(i) = '0' and r.disableLane(i) = '0' and r.fillOnFailEn = '1' then
+                     if dFifoValid(i) = '0' and r.disableLane(i) = '0' and r.fillOnFailEn = '1' then
                         v.tempDisableLane(i) := '1';
                      end if;
                   end loop;
