@@ -140,7 +140,7 @@ class DigitalAsicStreamAxi(pr.Device):
          name         = 'fillOnFailCntLane',
          description  = 'counts the times a lane is temporarily disabled after a failure was detected',
          offset       = 0x800,
-         bitSize      = 16,
+         bitSize      = 32,
          mode         = 'RO',
          number       = numberLanes,
          stride       = 4,
