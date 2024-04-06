@@ -514,15 +514,16 @@ begin
                            
                v.stCnt := r.stCnt + 1;
                if r.stCnt = r.dataReqLane then 
+                  -- Adding tail preemptively
                   v.frmSize := r.stCnt + 1;
                   v.stCnt := (others=>'0');
                   
                   if r.frmMax <= v.frmSize then
-                     v.frmMax := v.frmSize + 1;
+                     v.frmMax := v.frmSize;
                   end if;
                   
                   if r.frmMin >= v.frmSize then
-                     v.frmMin := v.frmSize + 1;
+                     v.frmMin := v.frmSize;
                   end if;
                   
                   v.frmCnt := r.frmCnt + 1;
