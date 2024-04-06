@@ -19,7 +19,8 @@ class DigitalAsicStreamAxi(pr.Device):
                 1:"WAIT_SOF_S",
                 2:"HDR_S",
                 3:"DATA_S",
-                4:"TIMEOUT_S"}
+                4:"TIMEOUT_S",
+                5:"TAIL_S" }
 
       yesNo = { 0 : "Disabled",
                 1 : "Enabled" }

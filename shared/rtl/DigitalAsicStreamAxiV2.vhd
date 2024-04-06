@@ -82,7 +82,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
    constant VECTOR_OF_ZEROS_C : slv(LANES_NO_G-1 downto 0) := (others => '0');
    -- PGP3 protocol is using 128bit (check for global constant for this configuration)
    
-   type StateType is (IDLE_S, WAIT_SOF_S, HDR_S, DATA_S, TIMEOUT_S, TALE_S);
+   type StateType is (IDLE_S, WAIT_SOF_S, HDR_S, DATA_S, TIMEOUT_S, TAIL_S);
    
    type RegType is record
       state                   : StateType;
@@ -492,9 +492,9 @@ begin
             if v.txMaster.tValid = '0' then
                v.txMaster.tValid := '1';
                v.state := DATA_S;
-               v.txMaster.tData(31 downto  0) := x"0000" & x"00" & LANE_NO_G & VC_NO_G;
+               v.txMaster.tData(31 downto  0) := x"000000" & LANE_NO_G & VC_NO_G;
                v.txMaster.tData(63 downto 32) := r.acqNo(1)(31 downto 0);
-               v.txMaster.tData(79 downto 64) := x"000" & (r.fillOnFailEn and or_reduce(r.tempDisableLane)) & ASIC_NO_G;
+               v.txMaster.tData(79 downto 64) := (15 downto 3 => '0') & ASIC_NO_G;
                v.txMaster.tData(95 downto 80) := x"0000";
                ssiSetUserSof(AXI_STREAM_CONFIG_I_C, v.txMaster, '1');
             end if;
@@ -527,7 +527,7 @@ begin
                   
                   v.frmCnt := r.frmCnt + 1;
                   
-                  v.state := TALE_S;
+                  v.state := TAIL_S;
 
                   -- Increment monitor registers before exit to IDLE state
                   for i in 0 to (LANES_NO_G-1) loop
@@ -577,16 +577,16 @@ begin
                v.state := WAIT_SOF_S;
             end if;
 
-         when TALE_S =>
+         when TAIL_S =>
             ------------------------------------------------------------------
-            -- TALE
+            -- TAIL_S
             ------------------------------------------------------------------    
             if v.txMaster.tValid = '0' then
                v.txMaster.tValid := '1';
                v.txMaster.tLast := '1';
                v.state := IDLE_S;
-               v.txMaster.tData(31 downto  0) := x"00" & (fillOnFailEnV and r.tempDisableLane);
-               v.txMaster.tKeep  :=  (v.txMaster.tKeep'left downto 32 => '0') & x"ffffffff";
+               v.txMaster.tData(64 downto  0) := x"00" & r.disableLane & x"00" & (fillOnFailEnV and r.tempDisableLane);
+               v.txMaster.tKeep  :=  (v.txMaster.tKeep'left downto 64 => '0') & ( 63 downto 0 => '1');
                ssiSetUserEofe(AXI_STREAM_CONFIG_I_C, v.txMaster, '0');
             end if;
 
