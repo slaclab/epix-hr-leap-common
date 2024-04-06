@@ -585,7 +585,7 @@ begin
                v.txMaster.tValid := '1';
                v.txMaster.tLast := '1';
                v.state := IDLE_S;
-               v.txMaster.tData(64 downto  0) := x"00" & r.disableLane & x"00" & (fillOnFailEnV and r.tempDisableLane);
+               v.txMaster.tData(63 downto 0) := x"00" & r.disableLane & x"00" & (fillOnFailEnV and r.tempDisableLane);
                v.txMaster.tKeep  :=  (v.txMaster.tKeep'left downto 64 => '0') & ( 63 downto 0 => '1');
                ssiSetUserEofe(AXI_STREAM_CONFIG_I_C, v.txMaster, '0');
             end if;
