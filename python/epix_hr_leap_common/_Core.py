@@ -45,7 +45,7 @@ class Core(pr.Device):
         self.add(amphenol.LeapXcvr(
             offset  = 0x0003_0000,
             writeEn = False,
-            enabled = not sim and not promProg,
+            enabled = False,
         ))
 
         self.add(silabs.Si5345(
