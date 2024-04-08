@@ -24,13 +24,16 @@ package CorePkg is
 
    constant XIL_DEVICE_C : string := "ULTRASCALE_PLUS";
 
-   constant AXIL_CLK_FREQ_C   : real     := 156.25E+6;  -- In units of Hz
-   constant AXIL_CLK_PERIOD_C : real     := (1.0/AXIL_CLK_FREQ_C);  -- In units of seconds
+   constant AXIL_CLK_FREQ_C         : real     := 156.25E+6;  -- In units of Hz
+   constant AXIL_CLK_PERIOD_C       : real     := (1.0/AXIL_CLK_FREQ_C);  -- In units of seconds
+   constant FAST_AXIL_CLK_FREQ_C    : real     := 234.375E+6;  -- In units of Hz
+   constant FAST_AXIL_CLK_PERIOD_C  : real     := (1.0/FAST_AXIL_CLK_FREQ_C);  -- In units of seconds
 
    constant APP_AXIL_BASE_ADDR_C : slv(31 downto 0) := x"80000000";
 
    constant APP_AXIS_CONFIG_C : AxiStreamConfigType := PGP4_AXIS_CONFIG_C;
 
    constant PGP_RATE_C : string := "10.3125Gbps";
+   constant FAST_PGP_RATE_C : string := "15.46875Gbps";
 
 end package CorePkg;

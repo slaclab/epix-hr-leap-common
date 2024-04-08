@@ -37,9 +37,10 @@ entity Core is
       TPD_G                : time            := 1 ns;
       SIMULATION_G         : boolean         := false;
       NUM_OF_LANES_G       : integer         := 4;
-      NUM_OF_PSCOPE_G      : integer          := 4;
-      NUM_OF_SLOW_ADCS_G   : integer          := 4;
-      MEMORY_INIT_FILE_G   : string           := "none";
+      NUM_OF_PSCOPE_G      : integer         := 4;
+      NUM_OF_SLOW_ADCS_G   : integer         := 4;
+      MEMORY_INIT_FILE_G   : string          := "none";
+      PGP_SPEED_G          : string          := "SLOW"; --either "SLOW" or "FAST"
       SLOW_ADC_AXI_CFG_G   : AxiStreamConfigType := ssiAxiStreamConfig(4)
       );
    port (
@@ -217,55 +218,107 @@ architecture rtl of Core is
             -- Reset Outputs
             rstOut(0) => axilReset);
 
+      
       ---------------------------------------
       --          PGP Module
       ---------------------------------------
-      U_Pgp : entity work.PgpWrapper
-         generic map (
-            TPD_G              => TPD_G,
-            SIMULATION_G       => SIMULATION_G,
-            AXIL_BASE_ADDR_G   => XBAR_CONFIG_C(PGP_INDEX_C).baseAddr,
-            NUM_OF_SLOW_ADCS_G => NUM_OF_SLOW_ADCS_G,
-            NUM_OF_PSCOPE_G    => NUM_OF_PSCOPE_G,
-            NUM_OF_LANES_G     => NUM_OF_LANES_G,
-            SLOW_ADC_AXI_CFG_G => SLOW_ADC_AXI_CFG_G
-            )
-         port map (
-            -- Clock and Reset
-            axilClk          => axilClock,
-            axilRst          => axilReset,
+      GEN_PGP_SLOW : if (PGP_SPEED_G = "SLOW") generate
+         U_Pgp : entity work.PgpWrapper
+            generic map (
+               TPD_G              => TPD_G,
+               SIMULATION_G       => SIMULATION_G,
+               AXIL_BASE_ADDR_G   => XBAR_CONFIG_C(PGP_INDEX_C).baseAddr,
+               NUM_OF_SLOW_ADCS_G => NUM_OF_SLOW_ADCS_G,
+               NUM_OF_PSCOPE_G    => NUM_OF_PSCOPE_G,
+               NUM_OF_LANES_G     => NUM_OF_LANES_G,
+               SLOW_ADC_AXI_CFG_G => SLOW_ADC_AXI_CFG_G
+               )
+            port map (
+               -- Clock and Reset
+               axilClk          => axilClock,
+               axilRst          => axilReset,
 
-            -- Master AXI-Lite Interface
-            mAxilReadMaster  => mAxilReadMaster,
-            mAxilReadSlave   => mAxilReadSlave,
-            mAxilWriteMaster => mAxilWriteMaster,
-            mAxilWriteSlave  => mAxilWriteSlave,
+               -- Master AXI-Lite Interface
+               mAxilReadMaster  => mAxilReadMaster,
+               mAxilReadSlave   => mAxilReadSlave,
+               mAxilWriteMaster => mAxilWriteMaster,
+               mAxilWriteSlave  => mAxilWriteSlave,
 
-            -- Slave AXI-Lite Interfaces
-            sAxilReadMaster  => axilReadMasters(PGP_INDEX_C),
-            sAxilReadSlave   => axilReadSlaves(PGP_INDEX_C),
-            sAxilWriteMaster => axilWriteMasters(PGP_INDEX_C),
-            sAxilWriteSlave  => axilWriteSlaves(PGP_INDEX_C),
+               -- Slave AXI-Lite Interfaces
+               sAxilReadMaster  => axilReadMasters(PGP_INDEX_C),
+               sAxilReadSlave   => axilReadSlaves(PGP_INDEX_C),
+               sAxilWriteMaster => axilWriteMasters(PGP_INDEX_C),
+               sAxilWriteSlave  => axilWriteSlaves(PGP_INDEX_C),
 
-            -- Streaming Interfaces
-            asicDataMasters  => asicDataMasters,
-            asicDataSlaves   => asicDataSlaves,
-            remoteDmaPause   => remoteDmaPause,
-            oscopeMasters    => oscopeMasters,
-            oscopeSlaves     => oscopeSlaves,
-            slowAdcMasters   => slowAdcMasters,
-            slowAdcSlaves    => slowAdcSlaves,
+               -- Streaming Interfaces
+               asicDataMasters  => asicDataMasters,
+               asicDataSlaves   => asicDataSlaves,
+               remoteDmaPause   => remoteDmaPause,
+               oscopeMasters    => oscopeMasters,
+               oscopeSlaves     => oscopeSlaves,
+               slowAdcMasters   => slowAdcMasters,
+               slowAdcSlaves    => slowAdcSlaves,
 
-            -- LEAP Transceiver Ports
-            gtRefClk         => gtRefClk,
-            leapTxP          => fpgaOutObTransInP,
-            leapTxN          => fpgaOutObTransInM,
-            leapRxP          => fpgaInObTransOutP,
-            leapRxN          => fpgaInObTransOutM,
+               -- LEAP Transceiver Ports
+               gtRefClk         => gtRefClk,
+               leapTxP          => fpgaOutObTransInP,
+               leapTxN          => fpgaOutObTransInM,
+               leapRxP          => fpgaInObTransOutP,
+               leapRxN          => fpgaInObTransOutM,
 
-            -- SW trigger
-            ssiCmd           => ssiCmd
-         );
+               -- SW trigger
+               ssiCmd           => ssiCmd
+            );
+      end generate;
+
+      GEN_PGP_FAST : if (PGP_SPEED_G = "FAST") generate
+         U_Pgp : entity work.GtReadoutPgpWrapper
+            generic map (
+               TPD_G              => TPD_G,
+               SIMULATION_G       => SIMULATION_G,
+               AXIL_BASE_ADDR_G   => XBAR_CONFIG_C(PGP_INDEX_C).baseAddr,
+               NUM_OF_SLOW_ADCS_G => NUM_OF_SLOW_ADCS_G,
+               NUM_OF_PSCOPE_G    => NUM_OF_PSCOPE_G,
+               NUM_OF_LANES_G     => NUM_OF_LANES_G,
+               SLOW_ADC_AXI_CFG_G => SLOW_ADC_AXI_CFG_G
+               )
+            port map (
+               -- Clock and Reset
+               axilClk          => axilClock,
+               axilRst          => axilReset,
+
+               -- Master AXI-Lite Interface
+               mAxilReadMaster  => mAxilReadMaster,
+               mAxilReadSlave   => mAxilReadSlave,
+               mAxilWriteMaster => mAxilWriteMaster,
+               mAxilWriteSlave  => mAxilWriteSlave,
+
+               -- Slave AXI-Lite Interfaces
+               sAxilReadMaster  => axilReadMasters(PGP_INDEX_C),
+               sAxilReadSlave   => axilReadSlaves(PGP_INDEX_C),
+               sAxilWriteMaster => axilWriteMasters(PGP_INDEX_C),
+               sAxilWriteSlave  => axilWriteSlaves(PGP_INDEX_C),
+
+               -- Streaming Interfaces
+               asicDataMasters  => asicDataMasters,
+               asicDataSlaves   => asicDataSlaves,
+               remoteDmaPause   => remoteDmaPause,
+               oscopeMasters    => oscopeMasters,
+               oscopeSlaves     => oscopeSlaves,
+               slowAdcMasters   => slowAdcMasters,
+               slowAdcSlaves    => slowAdcSlaves,
+
+               -- LEAP Transceiver Ports
+               gtRefClk         => gtRefClk,
+               leapTxP          => fpgaOutObTransInP,
+               leapTxN          => fpgaOutObTransInM,
+               leapRxP          => fpgaInObTransOutP,
+               leapRxN          => fpgaInObTransOutM,
+
+               -- SW trigger
+               ssiCmd           => ssiCmd
+            );
+      end generate;
 
    end generate;
 
