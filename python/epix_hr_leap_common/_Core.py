@@ -46,6 +46,8 @@ class Core(pr.Device):
             offset  = 0x0003_0000,
             writeEn = False,
             enabled = False,
+            # if not all lanes are up, this module causes and exception
+            #enabled = not sim and not promProg,
         ))
 
         self.add(silabs.Si5345(
