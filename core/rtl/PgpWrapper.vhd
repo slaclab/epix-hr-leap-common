@@ -131,7 +131,7 @@ begin
       -- Initialize the variable
       pause := '0';
       -- Loop through the PGP lanes
-      for i in range 0 to 3 loop
+      for i in 0 to 3 loop
          if (pgpRxOut(i).linkReady = '1') and (pgpRxOut(i).remLinkData(0) = '1') then
             pause := '1';
          end if;
