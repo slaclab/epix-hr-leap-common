@@ -54,6 +54,9 @@ class DigitalAsicStreamAxi(pr.Device):
       self.add(pr.RemoteVariable(name='frameCyclesCtrMin', description='', offset=0x00000080, bitSize=16,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
       self.add(pr.RemoteVariable(name='frameCyclesCntrMax', description='', offset=0x00000084, bitSize=16,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
       self.add(pr.RemoteVariable(name='frameCyclesCntr', description='', offset=0x00000088, bitSize=16,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='readyLowCyclesCtrMin', description='', offset=0x0000008C, bitSize=16,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='readyLowCyclesCtrMax', description='', offset=0x00000090, bitSize=16,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='readyLowCyclesCtr', description='', offset=0x00000094, bitSize=16,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
 
 
       self.addRemoteVariables(

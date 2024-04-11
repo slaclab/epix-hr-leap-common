@@ -128,7 +128,10 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       hdrStateCntr            : slv(15 downto 0); 
       frameCyclesCtrMin       : slv(15 downto 0);
       frameCyclesCntrMax      : slv(15 downto 0); 
-      frameCyclesCntr         : slv(15 downto 0);       
+      frameCyclesCntr         : slv(15 downto 0);    
+      readyLowCyclesCtrMin    : slv(15 downto 0);    
+      readyLowCyclesCtrMax    : slv(15 downto 0);    
+      readyLowCyclesCtr       : slv(15 downto 0);
       txMaster                : AxiStreamMasterType;
       axilWriteSlave          : AxiLiteWriteSlaveType;
       axilReadSlave           : AxiLiteReadSlaveType;
@@ -178,7 +181,10 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       hdrStateCntr                => (others=>'0'),  
       frameCyclesCtrMin           => (others=>'0'),  
       frameCyclesCntrMax          => (others=>'0'),   
-      frameCyclesCntr             => (others=>'0'),               
+      frameCyclesCntr             => (others=>'0'),    
+      readyLowCyclesCtrMin        => (others=>'0'),        
+      readyLowCyclesCtrMax        => (others=>'0'),        
+      readyLowCyclesCtr           => (others=>'0'),                     
       txMaster                    => AXI_STREAM_MASTER_INIT_C,
       axilWriteSlave              => AXI_LITE_WRITE_SLAVE_INIT_C,
       axilReadSlave               => AXI_LITE_READ_SLAVE_INIT_C
@@ -404,7 +410,9 @@ begin
       axiSlaveRegisterR(regCon, x"080",  0, r.frameCyclesCtrMin);
       axiSlaveRegisterR(regCon, x"084",  0, r.frameCyclesCntrMax);
       axiSlaveRegisterR(regCon, x"088",  0, r.frameCyclesCntr);
-
+      axiSlaveRegisterR(regCon, x"08C",  0, r.readyLowCyclesCtrMin);
+      axiSlaveRegisterR(regCon, x"090",  0, r.readyLowCyclesCtrMax);
+      axiSlaveRegisterR(regCon, x"094",  0, r.readyLowCyclesCtr);
 
       for i in 0 to (LANES_NO_G-1) loop
          axiSlaveRegisterR(regCon, x"100"+toSlv(i*4,12),  0, r.timeoutCntLane(i));
@@ -655,70 +663,100 @@ begin
          v.wsofStateCntrMin  := (others=>'1');
          v.wsofStateCntrMax  := (others=>'0');
          v.wsofStateCntr     := (others=>'0');
-      elsif (r.stateD1 = WAIT_SOF_S and r.state /= WAIT_SOF_S) then -- update actual, min, max register when leaving DATA_S (on timeout or normally)
-         if r.wsofStateCntrMax <= r.wsofStateCntr then
-            v.wsofStateCntrMax := r.wsofStateCntr;
+      else
+         if (r.stateD1 = WAIT_SOF_S and r.state /= WAIT_SOF_S) then -- update actual, min, max register when leaving DATA_S (on timeout or normally)
+            if r.wsofStateCntrMax <= r.wsofStateCntr then
+               v.wsofStateCntrMax := r.wsofStateCntr;
+            end if;
+            if r.wsofStateCntrMin >= r.wsofStateCntr then
+               v.wsofStateCntrMin := r.wsofStateCntr;
+            end if;
+            v.wsofStateCntr := (others=>'0');
+         elsif (r.state = WAIT_SOF_S) then
+            v.wsofStateCntr := r.wsofStateCntr + 1;
          end if;
-         if r.wsofStateCntrMin >= r.wsofStateCntr then
-            v.wsofStateCntrMin := r.wsofStateCntr;
-         end if;
-      elsif (r.stateD1 /= WAIT_SOF_S and r.state = WAIT_SOF_S) then
-         v.wsofStateCntr := (others=>'0');
-      elsif (r.state = WAIT_SOF_S) then
-         v.wsofStateCntr := r.wsofStateCntr + 1;
       end if;
 
       if r.rstCnt = '1' then
          v.dataStateCntrMin  := (others=>'1');
          v.dataStateCntrMax  := (others=>'0');
          v.dataStateCntr     := (others=>'0');
-      elsif (r.stateD1 = DATA_S and r.state /= DATA_S) then -- update actual, min, max register when leaving DATA_S (on timeout or normally)
-         if r.dataStateCntrMax <= r.dataStateCntr then
-            v.dataStateCntrMax := r.dataStateCntr;
+      else
+         if (r.stateD1 = DATA_S and r.state /= DATA_S) then -- update actual, min, max register when leaving DATA_S (on timeout or normally)
+            if r.dataStateCntrMax <= r.dataStateCntr then
+               v.dataStateCntrMax := r.dataStateCntr;
+            end if;
+            if r.dataStateCntrMin >= r.dataStateCntr then
+               v.dataStateCntrMin := r.dataStateCntr;
+            end if;
+            v.dataStateCntr := (others=>'0');
+         elsif (r.state = DATA_S) then
+            v.dataStateCntr := r.dataStateCntr + 1;
          end if;
-         if r.dataStateCntrMin >= r.dataStateCntr then
-            v.dataStateCntrMin := r.dataStateCntr;
-         end if;
-      elsif (r.stateD1 /= DATA_S and r.state = DATA_S) then
-         v.dataStateCntr := (others=>'0');
-      elsif (r.state = DATA_S) then
-         v.dataStateCntr := r.dataStateCntr + 1;
       end if;
 
       if r.rstCnt = '1' then
          v.hdrStateCntrMin  := (others=>'1');
          v.hdrStateCntrMax  := (others=>'0');
          v.hdrStateCntr     := (others=>'0');
-      elsif (r.stateD1 = HDR_S and r.state /= HDR_S) then -- update actual, min, max register when leaving DATA_S (on timeout or normally)
-         if r.hdrStateCntrMax <= r.hdrStateCntr then
-            v.hdrStateCntrMax := r.hdrStateCntr;
+      -- when previous state is HDR_S and current state is not. Meaning leaving HDR_S
+      else
+         if (r.stateD1 = HDR_S and r.state /= HDR_S) then
+            if r.hdrStateCntrMax <= r.hdrStateCntr then
+               v.hdrStateCntrMax := r.hdrStateCntr;
+            end if;
+            if r.hdrStateCntrMin >= r.hdrStateCntr then
+               v.hdrStateCntrMin := r.hdrStateCntr;
+            end if;
+            v.hdrStateCntr := (others=>'0');
+         -- When current state is not HDR_S
+         elsif (r.state = HDR_S) then
+            v.hdrStateCntr := r.hdrStateCntr + 1;
          end if;
-         if r.hdrStateCntrMin >= r.hdrStateCntr then
-            v.hdrStateCntrMin := r.hdrStateCntr;
-         end if;
-      elsif (r.stateD1 /= HDR_S and r.state = HDR_S) then
-         v.hdrStateCntr := (others=>'0');
-      elsif (r.state = HDR_S) then
-         v.hdrStateCntr := r.hdrStateCntr + 1;
       end if;
 
       if r.rstCnt = '1' then
          v.frameCyclesCtrMin  := (others=>'1');
          v.frameCyclesCntrMax  := (others=>'0');
          v.frameCyclesCntr     := (others=>'0');
-      elsif (r.stateD1 /= IDLE_S and r.state = IDLE_S) then -- update actual, min, max register when leaving DATA_S (on timeout or normally)
-         if r.frameCyclesCntrMax <= r.frameCyclesCntr then
-            v.frameCyclesCntrMax := r.frameCyclesCntr;
+      -- When previous state was not IDLE_S and current state is IDLE_S. Meaning entering IDLE_S state.
+      else
+         if (r.stateD1 /= IDLE_S and r.state = IDLE_S) or (r.state = TIMEOUT_S) then 
+            if r.frameCyclesCntrMax <= r.frameCyclesCntr then
+               v.frameCyclesCntrMax := r.frameCyclesCntr;
+            end if;
+            if r.frameCyclesCtrMin >= r.frameCyclesCntr then
+               v.frameCyclesCtrMin := r.frameCyclesCntr;
+            end if;
          end if;
-         if r.frameCyclesCtrMin >= r.frameCyclesCntr then
-            v.frameCyclesCtrMin := r.frameCyclesCntr;
+      -- when previous state is IDLE_S and current state is not. Meaning leaving IDLE_S
+         if (r.stateD1 = IDLE_S and r.state /= IDLE_S) or (r.state = TIMEOUT_S) then
+            v.frameCyclesCntr := (others=>'0');
+         elsif (r.state /= IDLE_S) then
+            v.frameCyclesCntr := r.frameCyclesCntr + 1;
          end if;
-      elsif (r.stateD1 = IDLE_S and r.state /= IDLE_S) then
-         v.frameCyclesCntr := (others=>'0');
-      elsif (r.state /= IDLE_S) then
-         v.frameCyclesCntr := r.frameCyclesCntr + 1;
       end if;
-      
+
+      if r.rstCnt = '1' then
+         v.readyLowCyclesCtrMin  := (others=>'1');
+         v.readyLowCyclesCtrMax  := (others=>'0');
+         v.readyLowCyclesCtr     := (others=>'0');
+      else
+         if (r.stateD1 = DATA_S and r.state /= DATA_S) or (r.state = TIMEOUT_S) then 
+            if r.readyLowCyclesCtrMax <= r.readyLowCyclesCtr then
+               v.readyLowCyclesCtrMax := r.readyLowCyclesCtr;
+            end if;
+            if r.readyLowCyclesCtrMin >= r.readyLowCyclesCtr then
+               v.readyLowCyclesCtrMin := r.readyLowCyclesCtr;
+            end if;
+            v.readyLowCyclesCtr := (others=>'0');
+         end if;
+      -- when previous state is DATA_S and current state is not. Meaning leaving DATA_S
+         if (r.state = DATA_S and txSlave.tReady = '0') then
+            v.readyLowCyclesCtr := r.readyLowCyclesCtr + 1;
+         end if;
+      end if;
+
       -- reset logic      
       if (deserRst = '1') then
          v := REG_INIT_C;
