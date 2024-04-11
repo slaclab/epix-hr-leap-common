@@ -125,7 +125,20 @@ architecture mapping of PgpWrapper is
 begin
 
    -- Mapping the trigPauses from one of the PGP "DATA" lanes (they are all identical)
-   pcieDaqTrigPause <= pgpRxOut(0).remLinkData(0);
+   process(pgpRxOut)
+      variable pause : sl;
+   begin
+      -- Initialize the variable
+      pause := '0';
+      -- Loop through the PGP lanes
+      for i in range 0 to 3 loop
+         if (pgpRxOut(i).linkReady = '1') and (pgpRxOut(i).remLinkData(0) = '1') then
+            pause := '1';
+         end if;
+      end loop;
+      -- Asign the output
+      pcieDaqTrigPause <= pause;
+   end process;
 
    U_XBAR : entity surf.AxiLiteCrossbar
       generic map (
