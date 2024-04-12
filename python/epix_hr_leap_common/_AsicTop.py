@@ -30,6 +30,7 @@ class AsicTop(pr.Device):
         self.add(ePixHrCore.TriggerRegisters(
             offset = 0x0010_0000,
             triggerFreq = 156.25e6,
+            axiFreq     = 156.25e6,
         ))
 
         for indexAsicStreams in range(asicStreams):
