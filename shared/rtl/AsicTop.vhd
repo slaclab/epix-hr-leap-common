@@ -50,6 +50,7 @@ entity AsicTop is
       BUILD_INFO_G            : BuildInfoType
    );
    port (
+      pcieDaqTrigPause      : in sl;
 
       -- Clocking ports
       sysClk      : in sl;
@@ -59,6 +60,7 @@ entity AsicTop is
       triggerClk           : out   sl;
       triggerRst           : out   sl;
       triggerData          : in    TriggerEventDataArray(1 downto 0);
+      triggerUseMiniTpg    : in    sl;
       -- Optional: L1 trigger feedback (eventClk domain)
       l1Clk                : out   sl                    := '0';
       l1Rst                : out   sl                    := '0';
@@ -68,10 +70,10 @@ entity AsicTop is
       eventClk             : out   sl;
       eventRst             : out   sl;
       eventTrigMsgMasters  : in    AxiStreamMasterArray(1 downto 0);
-      eventTrigMsgSlaves   : out   AxiStreamSlaveArray(1 downto 0);
+      eventTrigMsgSlaves   : out   AxiStreamSlaveArray(1 downto 0) := (others => AXI_STREAM_SLAVE_FORCE_C);
       eventTrigMsgCtrl     : in    AxiStreamCtrlArray(1 downto 0);
       eventTimingMsgMasters: in    AxiStreamMasterArray(1 downto 0);
-      eventTimingMsgSlaves : out   AxiStreamSlaveArray(1 downto 0);
+      eventTimingMsgSlaves : out   AxiStreamSlaveArray(1 downto 0) := (others => AXI_STREAM_SLAVE_FORCE_C);
       clearReadout         : in    slv(1 downto 0);
       -- ADC/DAC Debug Trigger Interface (axilClk domain)
       oscopeAcqStart       : out   slv(NUM_OF_PSCOPE_G - 1 downto 0);
@@ -102,7 +104,6 @@ entity AsicTop is
       -- Streaming Interfaces (axilClk domain)
       asicDataMasters    : out AxiStreamMasterArray(NUM_LANES_G - 1 downto 0);
       asicDataSlaves     : in  AxiStreamSlaveArray(NUM_LANES_G - 1 downto 0);
-      remoteDmaPause     : in  slv(NUM_LANES_G - 1 downto 0);
 
       ----------------------------------------
       --          Top Level Ports           --
@@ -201,6 +202,9 @@ architecture rtl of AsicTop is
    signal boardConfigSig               : AppConfigType;
    signal acqStartSig                  : sl;
 
+   signal localTrigPause               : sl;
+   signal localTrigPauseSync           : sl;
+
 begin
 
    triggerClk       <= axilClk;
@@ -214,10 +218,25 @@ begin
    oscopeAcqStart   <= (others => acqStartSig);
    oscopeTrigBus    <= (others => acqStartSig);
    slowAdcAcqStart  <= (others => acqStartSig);
-   timingRunTrigger <= triggerData(0).valid and triggerData(0).l0Accept;
-   timingDaqTrigger <= triggerData(1).valid and triggerData(1).l0Accept;
-
    boardConfig      <= boardConfigSig;
+
+   -----------------
+   -- [0] RunTrigger
+   -----------------
+   timingRunTrigger <= triggerData(0).valid and triggerData(0).l0Accept;
+
+   --------------------------------------------------------
+   -- [1] DaqTrigger: DaqTrigger only undergo back pressure
+   --------------------------------------------------------
+   timingDaqTrigger <= triggerData(1).valid and triggerData(1).l0Accept and not(localTrigPauseSync);
+   localTrigPause   <= pcieDaqTrigPause and triggerUseMiniTpg;
+   U_triggerUseMiniTpg : entity surf.Synchronizer
+      generic map (
+         TPD_G => TPD_G)
+      port map (
+         clk     => axilClk,
+         dataIn  => localTrigPause,
+         dataOut => localTrigPauseSync); -- Only use local pause when in stand alone timing mode (UseMiniTpg=1)
 
   U_ASIC_XBAR : entity surf.AxiLiteCrossbar
   generic map (
