@@ -50,8 +50,6 @@ entity AsicTop is
       BUILD_INFO_G            : BuildInfoType
    );
    port (
-      pcieDaqTrigPause      : in sl;
-
       -- Clocking ports
       sysClk      : in sl;
       sysRst      : in sl;
@@ -60,7 +58,6 @@ entity AsicTop is
       triggerClk           : out   sl;
       triggerRst           : out   sl;
       triggerData          : in    TriggerEventDataArray(1 downto 0);
-      triggerUseMiniTpg    : in    sl;
       -- Optional: L1 trigger feedback (eventClk domain)
       l1Clk                : out   sl                    := '0';
       l1Rst                : out   sl                    := '0';
@@ -202,9 +199,6 @@ architecture rtl of AsicTop is
    signal boardConfigSig               : AppConfigType;
    signal acqStartSig                  : sl;
 
-   signal localTrigPause               : sl;
-   signal localTrigPauseSync           : sl;
-
 begin
 
    triggerClk       <= axilClk;
@@ -228,15 +222,7 @@ begin
    --------------------------------------------------------
    -- [1] DaqTrigger: DaqTrigger only undergo back pressure
    --------------------------------------------------------
-   timingDaqTrigger <= triggerData(1).valid and triggerData(1).l0Accept and not(localTrigPauseSync);
-   localTrigPause   <= pcieDaqTrigPause and triggerUseMiniTpg;
-   U_triggerUseMiniTpg : entity surf.Synchronizer
-      generic map (
-         TPD_G => TPD_G)
-      port map (
-         clk     => axilClk,
-         dataIn  => localTrigPause,
-         dataOut => localTrigPauseSync); -- Only use local pause when in stand alone timing mode (UseMiniTpg=1)
+   timingDaqTrigger <= triggerData(1).valid and triggerData(1).l0Accept;
 
   U_ASIC_XBAR : entity surf.AxiLiteCrossbar
   generic map (

@@ -44,7 +44,6 @@ entity TimingRx is
       triggerClk           : in  sl;
       triggerRst           : in  sl;
       triggerData          : out TriggerEventDataArray(NUM_EVENT_CHANNELS_G - 1 downto 0);
-      triggerUseMiniTpg    : out sl;
       -- L1 trigger feedback (optional)
       l1Clk                : in  sl                    := '0';
       l1Rst                : in  sl                    := '0';
@@ -183,6 +182,13 @@ architecture mapping of TimingRx is
    signal txDbgPhyRst    : sl;
    signal txDbgPhyPllRst : sl;
 
+   signal trigPause                : slv(NUM_EVENT_CHANNELS_G-1 downto 0);
+   signal trigDataPause            : slv(NUM_EVENT_CHANNELS_G-1 downto 0);
+   signal trigEventPause           : slv(NUM_EVENT_CHANNELS_G-1 downto 0);
+   signal triggerDataLocal         : TriggerEventDataArray(NUM_EVENT_CHANNELS_G-1 downto 0);
+   signal eventTrigMsgMastersLocal : AxiStreamMasterArray(NUM_EVENT_CHANNELS_G-1 downto 0);
+   signal eventTrigMsgSlavesLocal  : AxiStreamSlaveArray(NUM_EVENT_CHANNELS_G-1 downto 0);
+
 begin
 
    U_gtRefClk : IBUFDS_GTE4
@@ -289,14 +295,6 @@ begin
          clk     => rxUsrClk,
          dataIn  => useMiniTpg,
          dataOut => useMiniTpgSync);
-
-   U_triggerUseMiniTpg : entity surf.Synchronizer
-      generic map (
-         TPD_G => TPD_G)
-      port map (
-         clk     => triggerClk,
-         dataIn  => useMiniTpg,
-         dataOut => triggerUseMiniTpg);
 
    -------------
    -- GTH Module
@@ -494,7 +492,7 @@ begin
          timingTxPhy                 => temTimingTxPhy,               -- [out]
          triggerClk                  => triggerClk,                   -- [in]
          triggerRst                  => triggerRst,                   -- [in]
-         triggerData                 => triggerData,                  -- [out]
+         triggerData                 => triggerDataLocal,             -- [out]
          clearReadout                => clearReadout,                 -- [out]
          l1Clk                       => l1Clk,                        -- [in]
          l1Rst                       => l1Rst,                        -- [in]
@@ -505,8 +503,8 @@ begin
          eventTimingMessagesValid    => eventTimingMessagesValid,     -- [out]
          eventTimingMessages         => eventTimingMessage,           -- [out]
          eventTimingMessagesRd       => eventTimingMessagesRd,        -- [in]
-         eventAxisMasters            => eventTrigMsgMasters,           -- [out]
-         eventAxisSlaves             => eventTrigMsgSlaves,            -- [in]
+         eventAxisMasters            => eventTrigMsgMastersLocal,     -- [out]
+         eventAxisSlaves             => eventTrigMsgSlavesLocal,      -- [in]
          eventAxisCtrl               => eventTrigMsgCtrl,             -- [in]
          axilClk                     => axilClk,                      -- [in]
          axilRst                     => axilRst,                      -- [in]
@@ -531,5 +529,63 @@ begin
          -- Output Streams
          eventTimingMsgMasters       => eventTimingMsgMasters,      -- [out]
          eventTimingMsgSlaves        => eventTimingMsgSlaves);      -- [in]
+
+   G_Pause : for i in 0 to NUM_EVENT_CHANNELS_G-1 generate
+
+      trigPause(i) <= eventTrigMsgCtrl(i).pause and useMiniTpg;
+
+      U_trigDataPause : entity surf.Synchronizer
+         generic map (
+            TPD_G => TPD_G)
+         port map (
+            clk     => triggerClk,
+            dataIn  => trigPause(i),
+            dataOut => trigDataPause(i));
+
+      U_trigEventPause : entity surf.Synchronizer
+         generic map (
+            TPD_G => TPD_G)
+         port map (
+            clk     => eventClk,
+            dataIn  => trigPause(i),
+            dataOut => trigEventPause(i));
+
+   end generate;
+
+   process(eventTrigMsgMastersLocal,eventTrigMsgSlaves,triggerDataLocal)
+      variable trig : TriggerEventDataArray(NUM_EVENT_CHANNELS_G-1 downto 0);
+      variable mMsg : AxiStreamMasterArray(NUM_EVENT_CHANNELS_G-1 downto 0);
+      variable sMsg : AxiStreamSlaveArray(NUM_EVENT_CHANNELS_G-1 downto 0);
+   begin
+      -- Initialize variable
+      trig := triggerDataLocal;
+      mMsg := eventTrigMsgMastersLocal;
+      sMsg := eventTrigMsgSlaves;
+
+      -- Apply mask to all channels except for lowest ("RunTrigger")
+      for i in 0 to NUM_EVENT_CHANNELS_G-1 loop
+
+         if trigDataPause(i) = '1' then
+            trig(i).valid    := '0';
+            trig(i).l0Accept := '0';
+         end if;
+
+         if trigEventPause(i) = '1' then
+            mMsg(i).tValid := '0';
+            sMsg(i).tReady := '1';
+         end if;
+
+      end loop;
+
+      ----------------------------------------------------------------------------------
+      -- Note: This only works if triggerClk=eventClk else potential metastability issue
+      ----------------------------------------------------------------------------------
+
+      -- Outputs
+      triggerData             <= trig;
+      eventTrigMsgMasters     <= mMsg;
+      eventTrigMsgSlavesLocal <= sMsg;
+
+   end process;
 
 end mapping;
