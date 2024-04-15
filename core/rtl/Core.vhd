@@ -58,7 +58,6 @@ entity Core is
       -- Streaming Interfaces (axilClk domain)
       asicDataMasters : in    AxiStreamMasterArray(NUM_OF_LANES_G - 1 downto 0);
       asicDataSlaves  : out   AxiStreamSlaveArray(NUM_OF_LANES_G - 1 downto 0);
-      remoteDmaPause  : out   slv(NUM_OF_LANES_G - 1 downto 0);
       oscopeMasters   : in    AxiStreamMasterArray( NUM_OF_PSCOPE_G - 1 downto 0);
       oscopeSlaves    : out   AxiStreamSlaveArray( NUM_OF_PSCOPE_G - 1 downto 0);
       slowAdcMasters  : in    AxiStreamMasterArray( NUM_OF_SLOW_ADCS_G - 1 downto 0);
@@ -251,7 +250,6 @@ architecture rtl of Core is
             -- Streaming Interfaces
             asicDataMasters  => asicDataMasters,
             asicDataSlaves   => asicDataSlaves,
-            remoteDmaPause   => remoteDmaPause,
             oscopeMasters    => oscopeMasters,
             oscopeSlaves     => oscopeSlaves,
             slowAdcMasters   => slowAdcMasters,
