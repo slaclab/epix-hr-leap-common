@@ -34,7 +34,8 @@ entity DigitalAsicStreamAxiV2 is
       ASIC_NO_G            : slv(2 downto 0)  := "000";
       LANES_NO_G           : natural := 6;
       GAIN_BIT_REMAP_G     : boolean := true; --true moves LSB to MSB
-      AXIL_ERR_RESP_G      : slv(1 downto 0)  := AXI_RESP_DECERR_C
+      AXIL_ERR_RESP_G      : slv(1 downto 0)  := AXI_RESP_DECERR_C;
+      INVERT_BITS_G        : boolean := false; --true subtracts (others => '1') from pixel value
    );
    port ( 
       -- Deserialized data port
@@ -303,10 +304,18 @@ begin
       U_GainBitReMap : process (rxData, r)
       begin
         if (GAIN_BIT_REMAP_G = true) then
-          rxDataReMap(i)(14 downto 0)   <= rxData(i)(15 downto 1);
-          rxDataReMap(i)(15)            <= rxData(i)(0);
+            if (INVERT_BITS_G = true) then
+               rxDataReMap(i)(14 downto 0)   <= not rxData(i)(15 downto 1);
+            else
+               rxDataReMap(i)(14 downto 0)   <= rxData(i)(15 downto 1);
+            end if;
+            rxDataReMap(i)(15)            <= rxData(i)(0);
         else
-          rxDataReMap(i) <= rxData(i);
+            if (INVERT_BITS_G = true) then
+               rxDataReMap(i) <= rxData(i)(15) & not rxData(i)(14 downto 0);
+            else
+               rxDataReMap(i) <= rxData(i);
+            end if;        
         end if;
       end process;       
    
@@ -357,7 +366,7 @@ begin
                dFifoExtData(16*i+15 downto 16*i) <= toSlv(i,16);
             end if;
          else
-            dFifoExtData(16*i+15 downto 16*i) <= dFifoOut(i);
+               dFifoExtData(16*i+15 downto 16*i) <= dFifoOut(i);
          end if;
       end process;
          

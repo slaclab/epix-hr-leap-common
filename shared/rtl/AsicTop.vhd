@@ -47,7 +47,8 @@ entity AsicTop is
       NUM_DS2411_G            : integer       := 3;
       NUM_OF_SLOW_ADCS_G      : integer       := 2;
       NUM_LANES_G             : integer       := 5; 
-      BUILD_INFO_G            : BuildInfoType
+      BUILD_INFO_G            : BuildInfoType;
+      INVERT_BITS_G           : boolean := false;
    );
    port (
       -- Clocking ports
@@ -359,7 +360,8 @@ begin
                LANE_NO_G           => toSlv(i, 4),
                ASIC_NO_G           => toSlv(i, 3),
                LANES_NO_G          => 24,
-               AXIL_ERR_RESP_G     => AXI_RESP_DECERR_C
+               AXIL_ERR_RESP_G     => AXI_RESP_DECERR_C,
+               INVERT_BITS_G       => INVERT_BITS_G
                )
             port map(
                -- Deserialized data port
