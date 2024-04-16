@@ -58,7 +58,7 @@ class Core(pr.Device):
 
         self.add(ti.Lmk61e2(
             offset  = 0x0005_0000,
-            enabled = not sim and not promProg,
+            enabled = False,
         ))
 
         for lane,vc in enumerate(pgpLaneVc):
