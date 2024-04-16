@@ -35,7 +35,7 @@ entity DigitalAsicStreamAxiV2 is
       LANES_NO_G           : natural := 6;
       GAIN_BIT_REMAP_G     : boolean := true; --true moves LSB to MSB
       AXIL_ERR_RESP_G      : slv(1 downto 0)  := AXI_RESP_DECERR_C;
-      INVERT_BITS_G        : boolean := false; --true subtracts (others => '1') from pixel value
+      INVERT_BITS_G        : boolean := false --true subtracts (others => '1') from pixel value
    );
    port ( 
       -- Deserialized data port

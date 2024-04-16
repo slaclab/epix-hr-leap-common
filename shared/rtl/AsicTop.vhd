@@ -48,7 +48,7 @@ entity AsicTop is
       NUM_OF_SLOW_ADCS_G      : integer       := 2;
       NUM_LANES_G             : integer       := 5; 
       BUILD_INFO_G            : BuildInfoType;
-      INVERT_BITS_G           : boolean := false;
+      INVERT_BITS_G           : boolean := false
    );
    port (
       -- Clocking ports
