@@ -485,7 +485,7 @@ begin
          when IDLE_S =>
 
             -- reset temporary disable for autofill on failure
-            if fillOnFailPeristantDisable = '0' then
+            if r.fillOnFailPeristantDisable = '0' then
                v.tempDisableLane := (others => '0');
             end if;
             v.fillOnFailTimeoutCntr := (others => '0');
