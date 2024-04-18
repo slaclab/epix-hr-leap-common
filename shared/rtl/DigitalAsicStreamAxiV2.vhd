@@ -133,7 +133,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       frameCyclesCntr         : slv(15 downto 0);  
       sroToSofCntrReg         : Slv16Array(LANES_NO_G-1 downto 0);
       sroToSofCntr            : Slv16Array(LANES_NO_G-1 downto 0);  
-      trigToroCtrMin          : slv(15 downto 0);
+      trigToSroCntrMin          : slv(15 downto 0);
       trigToSroCntrMax        : slv(15 downto 0); 
       trigToSroCntr           : slv(15 downto 0);            
       readyLowCyclesCtrMin    : slv(15 downto 0);    
@@ -194,7 +194,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       readyLowCyclesCtr           => (others=>'0'), 
       sroToSofCntrReg             => (others=>(others=>'0')),
       sroToSofCntr                => (others=>(others=>'0')),
-      trigToroCtrMin              => (others=>'0'),        
+      trigToSroCntrMin              => (others=>'1'),        
       trigToSroCntrMax            => (others=>'0'),        
       trigToSroCntr               => (others=>'0'),        
       txMaster                    => AXI_STREAM_MASTER_INIT_C,
@@ -443,7 +443,7 @@ begin
       axiSlaveRegisterR(regCon, x"090",  0, r.readyLowCyclesCtrMax);
       axiSlaveRegisterR(regCon, x"094",  0, r.readyLowCyclesCtr);
 
-      axiSlaveRegisterR(regCon, x"098",  0, r.trigToroCtrMin);
+      axiSlaveRegisterR(regCon, x"098",  0, r.trigToSroCntrMin);
       axiSlaveRegisterR(regCon, x"09C",  0, r.trigToSroCntrMax);
       axiSlaveRegisterR(regCon, x"010",  0, r.trigToSroCntr);
 
@@ -815,7 +815,7 @@ begin
       end if;
 
       if r.rstCnt = '1' then
-         v.trigToroCtrMin    := (others=>'1');
+         v.trigToSroCntrMin   := (others=>'1');
          v.trigToSroCntrMax  := (others=>'0');
          v.trigToSroCntr     := (others=>'0');
       else
@@ -823,12 +823,12 @@ begin
             if r.trigToSroCntrMax <= r.trigToSroCntr then
                v.trigToSroCntrMax := r.trigToSroCntr;
             end if;
-            if r.trigToroCtrMin >= r.trigToSroCntr then
-               v.trigToroCtrMin := r.trigToSroCntr;
+            if r.trigToSroCntrMin >= r.trigToSroCntr then
+               v.trigToSroCntrMin := r.trigToSroCntr;
             end if;
             v.trigToSroCntr := (others=>'0');
          end if;
-      -- when previous state is DATA_S and current state is not. Meaning leaving DATA_S
+      -- when current state is WAIT_SOF_S and not yet received the SRO signal
          if (r.state = WAIT_SOF_S and r.sroReceived = '0') then
             v.trigToSroCntr := r.trigToSroCntr + 1;
          end if;
