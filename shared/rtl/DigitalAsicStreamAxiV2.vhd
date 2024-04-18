@@ -130,7 +130,12 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       hdrStateCntr            : slv(15 downto 0); 
       frameCyclesCtrMin       : slv(15 downto 0);
       frameCyclesCntrMax      : slv(15 downto 0); 
-      frameCyclesCntr         : slv(15 downto 0);    
+      frameCyclesCntr         : slv(15 downto 0);  
+      sroToSofCntrReg         : Slv16Array(LANES_NO_G-1 downto 0);
+      sroToSofCntr            : Slv16Array(LANES_NO_G-1 downto 0);  
+      trigToroCtrMin          : slv(15 downto 0);
+      trigToSroCntrMax        : slv(15 downto 0); 
+      trigToSroCntr           : slv(15 downto 0);            
       readyLowCyclesCtrMin    : slv(15 downto 0);    
       readyLowCyclesCtrMax    : slv(15 downto 0);    
       readyLowCyclesCtr       : slv(15 downto 0);
@@ -186,7 +191,12 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       frameCyclesCntr             => (others=>'0'),    
       readyLowCyclesCtrMin        => (others=>'0'),        
       readyLowCyclesCtrMax        => (others=>'0'),        
-      readyLowCyclesCtr           => (others=>'0'),                     
+      readyLowCyclesCtr           => (others=>'0'), 
+      sroToSofCntrReg             => (others=>(others=>'0')),
+      sroToSofCntr                => (others=>(others=>'0')),
+      trigToroCtrMin              => (others=>'0'),        
+      trigToSroCntrMax            => (others=>'0'),        
+      trigToSroCntr               => (others=>'0'),        
       txMaster                    => AXI_STREAM_MASTER_INIT_C,
       axilWriteSlave              => AXI_LITE_WRITE_SLAVE_INIT_C,
       axilReadSlave               => AXI_LITE_READ_SLAVE_INIT_C
@@ -433,6 +443,12 @@ begin
       axiSlaveRegisterR(regCon, x"090",  0, r.readyLowCyclesCtrMax);
       axiSlaveRegisterR(regCon, x"094",  0, r.readyLowCyclesCtr);
 
+      axiSlaveRegisterR(regCon, x"098",  0, r.trigToroCtrMin);
+      axiSlaveRegisterR(regCon, x"09C",  0, r.trigToSroCntrMax);
+      axiSlaveRegisterR(regCon, x"010",  0, r.trigToSroCntr);
+
+
+
       for i in 0 to (LANES_NO_G-1) loop
          axiSlaveRegisterR(regCon, x"100"+toSlv(i*4,12),  0, r.timeoutCntLane(i));
          axiSlaveRegisterR(regCon, x"200"+toSlv(i*4,12),  0, r.dataCntLane(i));
@@ -442,6 +458,8 @@ begin
          axiSlaveRegisterR(regCon, x"600"+toSlv(i*4,12),  0, r.dataDlyLaneReg(i));
          axiSlaveRegisterR(regCon, x"700"+toSlv(i*4,12),  0, r.dataOvfLane(i));
          axiSlaveRegisterR(regCon, x"800"+toSlv(i*4,12),  0, r.fillOnFailCntLane(i));
+         axiSlaveRegisterR(regCon, x"900"+toSlv(i*4,12),  0, r.sroToSofCntrReg(i));
+         
       end loop;
       
       axiSlaveDefault(regCon, v.axilWriteSlave, v.axilReadSlave, AXIL_ERR_RESP_G);
@@ -682,6 +700,19 @@ begin
          elsif rxFull(i) = '1' and rxValid(i) = '1' and r.dataOvfLane(i) /= x"ffff" then
             v.dataOvfLane(i) := r.dataOvfLane(i) + 1;
          end if;
+
+         if r.rstCnt = '1' then
+            v.sroToSofCntrReg(i)  := (others=>'0');
+            v.sroToSofCntr(i)     := (others=>'0');
+         elsif daqTriggerSync = '1' then
+            v.sroToSofCntr(i) := (others=>'0');
+         -- Register data only on time of transition out of WAIT_SOF_S state
+         elsif (r.stateD1 = WAIT_SOF_S and r.state /= WAIT_SOF_S) then
+            v.sroToSofCntrReg(i) := r.sroToSofCntr(i);
+         -- Check if there is not data on that lane in this cycle (only significant in WAIT_SOF_S state)
+         elsif dFifoSof(i) = '0' and r.sroReceived = '1' and r.sroToSofCntr(i) /= x"ffff" then
+            v.sroToSofCntr(i) := r.sroToSofCntr(i) + 1;
+         end if;
          
       end loop;
 
@@ -782,6 +813,27 @@ begin
             v.readyLowCyclesCtr := r.readyLowCyclesCtr + 1;
          end if;
       end if;
+
+      if r.rstCnt = '1' then
+         v.trigToroCtrMin    := (others=>'1');
+         v.trigToSroCntrMax  := (others=>'0');
+         v.trigToSroCntr     := (others=>'0');
+      else
+         if (r.state = WAIT_SOF_S and sroSync = '1') then 
+            if r.trigToSroCntrMax <= r.trigToSroCntr then
+               v.trigToSroCntrMax := r.trigToSroCntr;
+            end if;
+            if r.trigToroCtrMin >= r.trigToSroCntr then
+               v.trigToroCtrMin := r.trigToSroCntr;
+            end if;
+            v.trigToSroCntr := (others=>'0');
+         end if;
+      -- when previous state is DATA_S and current state is not. Meaning leaving DATA_S
+         if (r.state = WAIT_SOF_S and r.sroReceived = '0') then
+            v.trigToSroCntr := r.trigToSroCntr + 1;
+         end if;
+      end if;
+  
 
       -- reset logic      
       if (deserRst = '1') then

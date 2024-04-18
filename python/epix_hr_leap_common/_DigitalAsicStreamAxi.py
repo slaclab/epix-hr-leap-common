@@ -58,6 +58,22 @@ class DigitalAsicStreamAxi(pr.Device):
       self.add(pr.RemoteVariable(name='readyLowCyclesCtrMax', description='', offset=0x00000090, bitSize=16,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
       self.add(pr.RemoteVariable(name='readyLowCyclesCtr', description='', offset=0x00000094, bitSize=16,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
 
+      self.add(pr.RemoteVariable(name='trigToroCtrMin', description='', offset=0x00000098, bitSize=16,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='trigToSroCntrMax', description='', offset=0x0000009C, bitSize=16,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='trigToSroCntr', description='', offset=0x00000010, bitSize=16,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+
+
+      self.addRemoteVariables(
+         name         = 'sroToSofCntr',
+         description  = 'counts the number of cycles between the arrival of SRO and the SOF',
+         offset       = 0x900,
+         bitSize      = 16,
+         mode         = 'RO',
+         number       = numberLanes,
+         stride       = 4,
+         pollInterval = 1,
+         disp         = '{}', 
+      )
 
       self.addRemoteVariables(
          name         = 'TimeoutCntLane',
