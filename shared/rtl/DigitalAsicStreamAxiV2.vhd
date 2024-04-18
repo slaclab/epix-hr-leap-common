@@ -638,7 +638,7 @@ begin
                v.txMaster.tLast := '1';
                v.state := IDLE_S;
                v.txMaster.tData(63 downto 0) := x"00" & r.disableLane & x"00" & (fillOnFailEnV and r.tempDisableLane);
-               v.txMaster.tKeep  :=  (v.txMaster.tKeep'left downto 64 => '0') & ( 63 downto 0 => '1');
+               v.txMaster.tKeep  := ( others => '1');
                ssiSetUserEofe(AXI_STREAM_CONFIG_I_C, v.txMaster, '0');
             end if;
 
@@ -819,6 +819,10 @@ begin
          v.trigToSroCntrMax  := (others=>'0');
          v.trigToSroCntr     := (others=>'0');
       else
+      -- when current state is WAIT_SOF_S and not yet received the SRO signal
+         if (r.state = WAIT_SOF_S and r.sroReceived = '0') then
+            v.trigToSroCntr := r.trigToSroCntr + 1;
+         end if;
          if (r.state = WAIT_SOF_S and sroSync = '1') then 
             if r.trigToSroCntrMax <= r.trigToSroCntr then
                v.trigToSroCntrMax := r.trigToSroCntr;
@@ -827,10 +831,6 @@ begin
                v.trigToSroCntrMin := r.trigToSroCntr;
             end if;
             v.trigToSroCntr := (others=>'0');
-         end if;
-      -- when current state is WAIT_SOF_S and not yet received the SRO signal
-         if (r.state = WAIT_SOF_S and r.sroReceived = '0') then
-            v.trigToSroCntr := r.trigToSroCntr + 1;
          end if;
       end if;
   
