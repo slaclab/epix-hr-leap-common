@@ -45,7 +45,9 @@ class Core(pr.Device):
         self.add(amphenol.LeapXcvr(
             offset  = 0x0003_0000,
             writeEn = False,
-            enabled = not sim and not promProg,
+            enabled = False,
+            # if not all lanes are up, this module causes and exception
+            #enabled = not sim and not promProg,
         ))
 
         self.add(silabs.Si5345(
@@ -56,7 +58,7 @@ class Core(pr.Device):
 
         self.add(ti.Lmk61e2(
             offset  = 0x0005_0000,
-            enabled = not sim and not promProg,
+            enabled = False,
         ))
 
         for lane,vc in enumerate(pgpLaneVc):

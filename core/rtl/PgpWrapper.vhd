@@ -54,7 +54,6 @@ entity PgpWrapper is
       -- Streaming Interfaces
       asicDataMasters  : in  AxiStreamMasterArray(NUM_OF_LANES_G - 1 downto 0);
       asicDataSlaves   : out AxiStreamSlaveArray(NUM_OF_LANES_G - 1 downto 0);
-      remoteDmaPause   : out slv(NUM_OF_LANES_G - 1 downto 0);
       oscopeMasters    : in  AxiStreamMasterArray(NUM_OF_PSCOPE_G - 1 downto 0);
       oscopeSlaves     : out AxiStreamSlaveArray(NUM_OF_PSCOPE_G - 1 downto 0);
       slowAdcMasters   : in  AxiStreamMasterArray(NUM_OF_SLOW_ADCS_G - 1 downto 0);
@@ -107,7 +106,6 @@ architecture mapping of PgpWrapper is
    -- these are unidirectional lanes to transmit data out on a single VC (lanes 0 - 4)
    signal dataTxMasters  : AxiStreamMasterArray(NUM_OF_LANES_G - 1 downto 0) := (others => AXI_STREAM_MASTER_INIT_C);
    signal dataTxSlaves   : AxiStreamSlaveArray(NUM_OF_LANES_G - 1 downto 0)  := (others => AXI_STREAM_SLAVE_FORCE_C);
-   signal removePauseVec : slv(NUM_OF_LANES_G - 1 downto 0);
 
    -- These are the buses for lane 5 only. Each index here is a VC
    signal pgpTxMasters : AxiStreamMasterArray(2 downto 0) := (others => AXI_STREAM_MASTER_INIT_C);
@@ -125,7 +123,20 @@ architecture mapping of PgpWrapper is
 begin
 
    -- Mapping the trigPauses from one of the PGP "DATA" lanes (they are all identical)
-   pcieDaqTrigPause <= pgpRxOut(0).remLinkData(0);
+   process(pgpRxOut)
+      variable pause : sl;
+   begin
+      -- Initialize the variable
+      pause := '0';
+      -- Loop through the PGP lanes
+      for i in 0 to 3 loop
+         if (pgpRxOut(i).linkReady = '1') and (pgpRxOut(i).remLinkData(0) = '1') then
+            pause := '1';
+         end if;
+      end loop;
+      -- Asign the output
+      pcieDaqTrigPause <= pause;
+   end process;
 
    U_XBAR : entity surf.AxiLiteCrossbar
       generic map (
@@ -236,17 +247,6 @@ begin
             txlinkReady => pgpTxOut(i).linkReady,
             pgpTxMaster => dataTxMasters(i),
             pgpTxSlave  => dataTxSlaves(i));
-
-      U_remoteDmaPause : entity surf.Synchronizer
-         generic map (
-            TPD_G => TPD_G)
-         port map (
-            clk     => axilClk,
-            dataIn  => removePauseVec(i),
-            dataOut => remoteDmaPause(i));
-
-      -- On the PCIe card, remLinkData[0] is mapped to the large DDR/HBM memory buffer's pause
-      removePauseVec(i) <= pgpRxOut(i).remLinkData(0) or not(pgpRxOut(i).linkReady) or not(pgpTxOut(i).linkReady);
 
    end generate GEN_PGP_DATA;
 

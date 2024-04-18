@@ -47,10 +47,10 @@ entity AsicTop is
       NUM_DS2411_G            : integer       := 3;
       NUM_OF_SLOW_ADCS_G      : integer       := 2;
       NUM_LANES_G             : integer       := 5; 
-      BUILD_INFO_G            : BuildInfoType
+      BUILD_INFO_G            : BuildInfoType;
+      INVERT_BITS_G           : boolean := false
    );
    port (
-
       -- Clocking ports
       sysClk      : in sl;
       sysRst      : in sl;
@@ -68,10 +68,10 @@ entity AsicTop is
       eventClk             : out   sl;
       eventRst             : out   sl;
       eventTrigMsgMasters  : in    AxiStreamMasterArray(1 downto 0);
-      eventTrigMsgSlaves   : out   AxiStreamSlaveArray(1 downto 0);
+      eventTrigMsgSlaves   : out   AxiStreamSlaveArray(1 downto 0) := (others => AXI_STREAM_SLAVE_FORCE_C);
       eventTrigMsgCtrl     : in    AxiStreamCtrlArray(1 downto 0);
       eventTimingMsgMasters: in    AxiStreamMasterArray(1 downto 0);
-      eventTimingMsgSlaves : out   AxiStreamSlaveArray(1 downto 0);
+      eventTimingMsgSlaves : out   AxiStreamSlaveArray(1 downto 0) := (others => AXI_STREAM_SLAVE_FORCE_C);
       clearReadout         : in    slv(1 downto 0);
       -- ADC/DAC Debug Trigger Interface (axilClk domain)
       oscopeAcqStart       : out   slv(NUM_OF_PSCOPE_G - 1 downto 0);
@@ -102,7 +102,6 @@ entity AsicTop is
       -- Streaming Interfaces (axilClk domain)
       asicDataMasters    : out AxiStreamMasterArray(NUM_LANES_G - 1 downto 0);
       asicDataSlaves     : in  AxiStreamSlaveArray(NUM_LANES_G - 1 downto 0);
-      remoteDmaPause     : in  slv(NUM_LANES_G - 1 downto 0);
 
       ----------------------------------------
       --          Top Level Ports           --
@@ -214,10 +213,17 @@ begin
    oscopeAcqStart   <= (others => acqStartSig);
    oscopeTrigBus    <= (others => acqStartSig);
    slowAdcAcqStart  <= (others => acqStartSig);
-   timingRunTrigger <= triggerData(0).valid and triggerData(0).l0Accept;
-   timingDaqTrigger <= triggerData(1).valid and triggerData(1).l0Accept;
-
    boardConfig      <= boardConfigSig;
+
+   -----------------
+   -- [0] RunTrigger
+   -----------------
+   timingRunTrigger <= triggerData(0).valid and triggerData(0).l0Accept;
+
+   --------------------------------------------------------
+   -- [1] DaqTrigger: DaqTrigger only undergo back pressure
+   --------------------------------------------------------
+   timingDaqTrigger <= triggerData(1).valid and triggerData(1).l0Accept;
 
   U_ASIC_XBAR : entity surf.AxiLiteCrossbar
   generic map (
@@ -354,7 +360,8 @@ begin
                LANE_NO_G           => toSlv(i, 4),
                ASIC_NO_G           => toSlv(i, 3),
                LANES_NO_G          => 24,
-               AXIL_ERR_RESP_G     => AXI_RESP_DECERR_C
+               AXIL_ERR_RESP_G     => AXI_RESP_DECERR_C,
+               INVERT_BITS_G       => INVERT_BITS_G
                )
             port map(
                -- Deserialized data port
@@ -382,7 +389,8 @@ begin
             
                -- acquisition number input to the header
                acqNo             => boardConfigSig.acqCnt,
-               startRdout        => dataSendStreched
+               daqTrigger        => dataSendStreched,
+               sro               => iAsicSRO
             );
       end generate;
       
