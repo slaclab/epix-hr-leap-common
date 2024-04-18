@@ -87,61 +87,62 @@ architecture RTL of DigitalAsicStreamAxiV2 is
    type StateType is (IDLE_S, WAIT_SOF_S, HDR_S, DATA_S, TIMEOUT_S, TAIL_S);
    
    type RegType is record
-      state                   : StateType;
-      stateD1                 : StateType;
-      disableLane             : slv(LANES_NO_G-1 downto 0);
-      enumDisLane             : slv(LANES_NO_G-1 downto 0);
-      gainBitRemap            : slv(LANES_NO_G-1 downto 0);
-      dataReqLane             : slv(15 downto 0);
-      dataCntLane             : Slv16Array(LANES_NO_G-1 downto 0);
-      dataCntLaneReg          : Slv16Array(LANES_NO_G-1 downto 0);
-      dataCntLaneMin          : Slv16Array(LANES_NO_G-1 downto 0);
-      dataCntLaneMax          : Slv16Array(LANES_NO_G-1 downto 0);
-      dataDlyLane             : Slv16Array(LANES_NO_G-1 downto 0);
-      dataDlyLaneReg          : Slv16Array(LANES_NO_G-1 downto 0);
-      dataOvfLane             : Slv16Array(LANES_NO_G-1 downto 0);
-      stCnt                   : slv(15 downto 0);
-      frmSize                 : slv(15 downto 0);
-      frmMax                  : slv(15 downto 0);
-      frmMin                  : slv(15 downto 0);
-      timeoutCntLane          : Slv16Array(LANES_NO_G-1 downto 0);
-      acqNo                   : Slv32Array(1 downto 0);
-      frmCnt                  : slv(31 downto 0); 
-      rstCnt                  : sl;
-      daqTriggerSync             : slv(3 downto 0);
-      dFifoRd                 : slv(LANES_NO_G-1 downto 0);
-      fillOnFailEn            : sl;
-      tempDisableLane         : slv(LANES_NO_G-1 downto 0);
-      fillOnFailLastMask      : slv(LANES_NO_G-1 downto 0);
-      fillOnFailCnt           : slv(31 downto 0); 
-      fillOnFailCntLane       : Slv32Array(LANES_NO_G-1 downto 0);      
-      fillOnFailTimeoutData   : slv(31 downto 0); 
-      fillOnFailTimeoutWaitSof: slv(31 downto 0); 
-      fillOnFailTimeoutCntr   : slv(31 downto 0); 
-      sroReceived             : sl;
-      wsofStateCntrMin        : slv(15 downto 0);
-      wsofStateCntrMax        : slv(15 downto 0);
-      wsofStateCntr           : slv(15 downto 0);
-      dataStateCntrMin        : slv(15 downto 0);
-      dataStateCntrMax        : slv(15 downto 0);
-      dataStateCntr           : slv(15 downto 0);
-      hdrStateCntrMin         : slv(15 downto 0);
-      hdrStateCntrMax         : slv(15 downto 0); 
-      hdrStateCntr            : slv(15 downto 0); 
-      frameCyclesCtrMin       : slv(15 downto 0);
-      frameCyclesCntrMax      : slv(15 downto 0); 
-      frameCyclesCntr         : slv(15 downto 0);  
-      sroToSofCntrReg         : Slv16Array(LANES_NO_G-1 downto 0);
-      sroToSofCntr            : Slv16Array(LANES_NO_G-1 downto 0);  
-      trigToSroCntrMin          : slv(15 downto 0);
-      trigToSroCntrMax        : slv(15 downto 0); 
-      trigToSroCntr           : slv(15 downto 0);            
-      readyLowCyclesCtrMin    : slv(15 downto 0);    
-      readyLowCyclesCtrMax    : slv(15 downto 0);    
-      readyLowCyclesCtr       : slv(15 downto 0);
-      txMaster                : AxiStreamMasterType;
-      axilWriteSlave          : AxiLiteWriteSlaveType;
-      axilReadSlave           : AxiLiteReadSlaveType;
+      state                       : StateType;
+      stateD1                     : StateType;
+      disableLane                 : slv(LANES_NO_G-1 downto 0);
+      enumDisLane                 : slv(LANES_NO_G-1 downto 0);
+      gainBitRemap                : slv(LANES_NO_G-1 downto 0);
+      dataReqLane                 : slv(15 downto 0);
+      dataCntLane                 : Slv16Array(LANES_NO_G-1 downto 0);
+      dataCntLaneReg              : Slv16Array(LANES_NO_G-1 downto 0);
+      dataCntLaneMin              : Slv16Array(LANES_NO_G-1 downto 0);
+      dataCntLaneMax              : Slv16Array(LANES_NO_G-1 downto 0);
+      dataDlyLane                 : Slv16Array(LANES_NO_G-1 downto 0);
+      dataDlyLaneReg              : Slv16Array(LANES_NO_G-1 downto 0);
+      dataOvfLane                 : Slv16Array(LANES_NO_G-1 downto 0);
+      stCnt                       : slv(15 downto 0);
+      frmSize                     : slv(15 downto 0);
+      frmMax                      : slv(15 downto 0);
+      frmMin                      : slv(15 downto 0);
+      timeoutCntLane              : Slv16Array(LANES_NO_G-1 downto 0);
+      acqNo                       : Slv32Array(1 downto 0);
+      frmCnt                      : slv(31 downto 0); 
+      rstCnt                      : sl;
+      daqTriggerSync                 : slv(3 downto 0);
+      dFifoRd                     : slv(LANES_NO_G-1 downto 0);
+      fillOnFailEn                : sl;
+      fillOnFailPeristantDisable  : sl;
+      tempDisableLane             : slv(LANES_NO_G-1 downto 0);
+      fillOnFailLastMask          : slv(LANES_NO_G-1 downto 0);
+      fillOnFailCnt               : slv(31 downto 0); 
+      fillOnFailCntLane           : Slv32Array(LANES_NO_G-1 downto 0);      
+      fillOnFailTimeoutData       : slv(31 downto 0); 
+      fillOnFailTimeoutWaitSof    : slv(31 downto 0); 
+      fillOnFailTimeoutCntr       : slv(31 downto 0); 
+      sroReceived                 : sl;
+      wsofStateCntrMin            : slv(15 downto 0);
+      wsofStateCntrMax            : slv(15 downto 0);
+      wsofStateCntr               : slv(15 downto 0);
+      dataStateCntrMin            : slv(15 downto 0);
+      dataStateCntrMax            : slv(15 downto 0);
+      dataStateCntr               : slv(15 downto 0);
+      hdrStateCntrMin             : slv(15 downto 0);
+      hdrStateCntrMax             : slv(15 downto 0); 
+      hdrStateCntr                : slv(15 downto 0); 
+      frameCyclesCtrMin           : slv(15 downto 0);
+      frameCyclesCntrMax          : slv(15 downto 0); 
+      frameCyclesCntr             : slv(15 downto 0);  
+      sroToSofCntrReg             : Slv16Array(LANES_NO_G-1 downto 0);
+      sroToSofCntr                : Slv16Array(LANES_NO_G-1 downto 0);  
+      trigToSroCntrMin              : slv(15 downto 0);
+      trigToSroCntrMax            : slv(15 downto 0); 
+      trigToSroCntr               : slv(15 downto 0);            
+      readyLowCyclesCtrMin        : slv(15 downto 0);    
+      readyLowCyclesCtrMax        : slv(15 downto 0);    
+      readyLowCyclesCtr           : slv(15 downto 0);
+      txMaster                    : AxiStreamMasterType;
+      axilWriteSlave              : AxiLiteWriteSlaveType;
+      axilReadSlave               : AxiLiteReadSlaveType;
    end record;
 
    constant REG_INIT_C : RegType := (
@@ -168,6 +169,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       frmCnt                      => (others=>'0'),
       rstCnt                      => '0',
       fillOnFailEn                => '0',
+      fillOnFailPeristantDisable  => '0',
       fillOnFailCnt               => (others=>'0'),
       fillOnFailTimeoutData       => (others=>'0'),
       fillOnFailTimeoutWaitSof    => (others=>'0'),
@@ -446,7 +448,7 @@ begin
       axiSlaveRegisterR(regCon, x"098",  0, r.trigToSroCntrMin);
       axiSlaveRegisterR(regCon, x"09C",  0, r.trigToSroCntrMax);
       axiSlaveRegisterR(regCon, x"010",  0, r.trigToSroCntr);
-
+      axiSlaveRegister (regCon, x"014",  0, v.fillOnFailPeristantDisable);
 
 
       for i in 0 to (LANES_NO_G-1) loop
@@ -483,7 +485,9 @@ begin
          when IDLE_S =>
 
             -- reset temporary disable for autofill on failure
-            v.tempDisableLane := (others => '0');
+            if fillOnFailPeristantDisable = '0' then
+               v.tempDisableLane := (others => '0');
+            end if;
             v.fillOnFailTimeoutCntr := (others => '0');
             v.sroReceived := '0';
             if daqTriggerSync = '1' then
