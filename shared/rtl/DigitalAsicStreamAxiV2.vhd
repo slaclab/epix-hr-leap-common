@@ -65,8 +65,9 @@ entity DigitalAsicStreamAxiV2 is
       -- acquisition number input to the header
       acqNo             : in  slv(31 downto 0);
       
-      -- readout request input
-      startRdout        : in  sl
+      -- Daq trigger and start readout request input
+      daqTrigger        : in  sl;
+      sro               : in  sl := '0'
       
    );
 end DigitalAsicStreamAxiV2;
@@ -107,17 +108,17 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       acqNo                   : Slv32Array(1 downto 0);
       frmCnt                  : slv(31 downto 0); 
       rstCnt                  : sl;
-      startRdSync             : slv(3 downto 0);
+      daqTriggerSync             : slv(3 downto 0);
       dFifoRd                 : slv(LANES_NO_G-1 downto 0);
       fillOnFailEn            : sl;
       tempDisableLane         : slv(LANES_NO_G-1 downto 0);
       fillOnFailLastMask      : slv(LANES_NO_G-1 downto 0);
       fillOnFailCnt           : slv(31 downto 0); 
       fillOnFailCntLane       : Slv32Array(LANES_NO_G-1 downto 0);      
-      fillOnFailTimeout       : slv(31 downto 0); 
-      fillOnFailTimeoutOffset : slv(31 downto 0); 
-      fillOnFailTimeoutTotal  : slv(31 downto 0); 
+      fillOnFailTimeoutData   : slv(31 downto 0); 
+      fillOnFailTimeoutWaitSof: slv(31 downto 0); 
       fillOnFailTimeoutCntr   : slv(31 downto 0); 
+      sroReceived             : sl;
       wsofStateCntrMin        : slv(15 downto 0);
       wsofStateCntrMax        : slv(15 downto 0);
       wsofStateCntr           : slv(15 downto 0);
@@ -163,13 +164,13 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       rstCnt                      => '0',
       fillOnFailEn                => '0',
       fillOnFailCnt               => (others=>'0'),
-      fillOnFailTimeout           => (others=>'0'),
-      fillOnFailTimeoutOffset     => (others=>'0'),
-      fillOnFailTimeoutTotal      => (others=>'0'),
+      fillOnFailTimeoutData       => (others=>'0'),
+      fillOnFailTimeoutWaitSof    => (others=>'0'),
+      sroReceived                 => '0',
       tempDisableLane             => (others=>'0'),
       fillOnFailLastMask          => (others=>'0'),
       fillOnFailTimeoutCntr       => (others=>'0'),
-      startRdSync                 => (others=>'0'),
+      daqTriggerSync              => (others=>'0'),
       dFifoRd                     => (others=>'0'),
       wsofStateCntrMin            => (others=>'0'),
       wsofStateCntrMax            => (others=>'0'),
@@ -215,7 +216,8 @@ architecture RTL of DigitalAsicStreamAxiV2 is
    signal DeserAxisDualClockFifoFull : sl;
    signal DeserAxisDualClockFifoWrCnt : slv(12 downto 0);
    
-   signal startRdSync   : sl;
+   signal daqTriggerSync   : sl;
+   signal sroSync          : sl;
    
    signal txSlave          : AxiStreamSlaveType;
    signal sAxisMasterWide  : AxiStreamMasterType;
@@ -232,7 +234,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
    
    attribute keep : string;
    attribute keep of r           : signal is "true";
-   attribute keep of startRdSync : signal is "true";
+   attribute keep of daqTriggerSync : signal is "true";
    attribute keep of dFifoEofe   : signal is "true";
    attribute keep of dFifoEof    : signal is "true";
    attribute keep of dFifoSof    : signal is "true";
@@ -266,14 +268,22 @@ begin
       dataOut => acqNoSync
    );
    
-   SroSync_U : entity surf.SynchronizerEdge
+   daqTriggerSync_U : entity surf.SynchronizerEdge
    port map (
       clk         => deserClk,
       rst         => deserRst,
-      dataIn      => startRdout,
-      risingEdge  => startRdSync
+      dataIn      => daqTrigger,
+      risingEdge  => daqTriggerSync
    );
-   
+
+   sroSync_U : entity surf.SynchronizerEdge
+   port map (
+      clk         => deserClk,
+      rst         => deserRst,
+      dataIn      => sro,
+      risingEdge  => sroSync
+   );
+
    AxilSync_U : entity surf.AxiLiteAsync
    generic map(
       PIPE_STAGES_G => 1
@@ -354,7 +364,7 @@ begin
       
       -- in cPix seeing corrupted junk being stuck in one of the lanes 
       -- this can only be cleared by the FSM stuck waiting for data
-      dFifoRst <= deserRst or startRdSync;
+      dFifoRst <= deserRst or daqTriggerSync;
       
       
       dataExt : process(dFifoOut, r.disableLane, r.enumDisLane, r.tempDisableLane, r.fillOnFailEn)
@@ -374,7 +384,7 @@ begin
 
 
    comb : process (deserRst, axilReadMaster, axilWriteMaster, txSlave, r, 
-      acqNoSync, dFifoExtData, dFifoValid, dFifoSof, dFifoEof, dFifoEofe, startRdSync, rxValid, rxSof, rxEof, rxEofe, rxFull) is
+      acqNoSync, dFifoExtData, dFifoValid, dFifoSof, dFifoEof, dFifoEofe, daqTriggerSync, sroSync, rxValid, rxSof, rxEof, rxEofe, rxFull) is
       variable v             : RegType;
       variable regCon        : AxiLiteEndPointType;
       variable fillOnFailEnV : slv(LANES_NO_G-1 downto 0);
@@ -384,10 +394,10 @@ begin
       v.rstCnt := '0';
       v.dFifoRd := (others=>'0');
       v.stateD1 := r.state;
-      v.startRdSync(3) := startRdSync;
-      v.startRdSync(2) := r.startRdSync(3);
-      v.startRdSync(1) := r.startRdSync(2);
-      v.startRdSync(0) := r.startRdSync(1);
+      v.daqTriggerSync(3) := daqTriggerSync;
+      v.daqTriggerSync(2) := r.daqTriggerSync(3);
+      v.daqTriggerSync(1) := r.daqTriggerSync(2);
+      v.daqTriggerSync(0) := r.daqTriggerSync(1);
       fillOnFailEnV := (others => r.fillOnFailEn);
 
       axiSlaveWaitTxn(regCon, axilWriteMaster, axilReadMaster, v.axilWriteSlave, v.axilReadSlave);
@@ -402,8 +412,8 @@ begin
       axiSlaveRegister (regCon, x"030",  0, v.enumDisLane);
       axiSlaveRegister (regCon, x"034",  0, v.gainBitRemap);
       axiSlaveRegister (regCon, x"038",  0, v.fillOnFailEn);
-      axiSlaveRegister (regCon, x"03C",  0, v.fillOnFailTimeoutOffset);
-      axiSlaveRegister (regCon, x"040",  0, v.fillOnFailTimeout);
+      axiSlaveRegister (regCon, x"03C",  0, v.fillOnFailTimeoutWaitSof);
+      axiSlaveRegister (regCon, x"040",  0, v.fillOnFailTimeoutData);
       axiSlaveRegisterR(regCon, x"044",  0, r.fillOnFailCnt);
       axiSlaveRegisterR(regCon, x"048",  0, r.fillOnFailLastMask);
       axiSlaveRegisterR(regCon, x"04C",  0, std_logic_vector(to_unsigned(StateType'pos(r.state), 8))); 
@@ -441,8 +451,6 @@ begin
       -- sync acquisition number
       v.acqNo(0) := acqNoSync;
       
-      v.fillOnFailTimeoutTotal := r.fillOnFailTimeout + r.fillOnFailTimeoutOffset;
-      
       -- Reset strobing Signals
       if (txSlave.tReady = '1') then
          v.txMaster.tValid := '0';
@@ -459,13 +467,21 @@ begin
             -- reset temporary disable for autofill on failure
             v.tempDisableLane := (others => '0');
             v.fillOnFailTimeoutCntr := (others => '0');
-            if startRdSync = '1' then
+            v.sroReceived := '0';
+            if daqTriggerSync = '1' then
                v.state := WAIT_SOF_S;
+               -- Any SRO before daq trigger is ignored
+               if (sroSync = '1') then
+                  v.sroReceived := '1';
+               end if;
             end if;
-            
-         -- condition to enter here is that startRdSync already arrived
+
+         -- condition to enter here is that daqTriggerSync already arrived
          when WAIT_SOF_S =>
-         
+
+            if (sroSync = '1') then
+               v.sroReceived := '1';
+            end if;
             --keeps flushing data until all SOF show up
             for i in 0 to (LANES_NO_G-1) loop
                if dFifoSof(i) = '0' and dFifoValid(i) = '1' then
@@ -475,7 +491,7 @@ begin
             
             -- next SRO while waiting for previous SOF. Too late to recover using autoFillOnFailure
             for i in 0 to (LANES_NO_G-1) loop
-               if startRdSync = '1' and dFifoSof(i) = '0' then
+               if daqTriggerSync = '1' and dFifoSof(i) = '0' then
                   v.timeoutCntLane(i) := r.timeoutCntLane(i) + 1;
                 end if;
             end loop;
@@ -486,13 +502,13 @@ begin
                v.fillOnFailTimeoutCntr := (others => '0');
                -- 
             else -- If not transitioning to next state, count one to fillOnFail counter
-               if (r.fillOnFailTimeoutCntr < r.fillOnFailTimeoutTotal) then
+               if (r.fillOnFailTimeoutCntr < r.fillOnFailTimeoutWaitSof and r.sroReceived = '1') then
                   v.fillOnFailTimeoutCntr := r.fillOnFailTimeoutCntr + 1;
                end if;
             end if;
 
             -- reach limit to fill on fail counter, disable lane temporarily for this image
-            if (r.fillOnFailTimeoutCntr >= r.fillOnFailTimeoutTotal) then
+            if (r.fillOnFailTimeoutCntr >= r.fillOnFailTimeoutWaitSof) then
                for i in 0 to (LANES_NO_G-1) loop
                   if dFifoSof(i) = '0' and r.disableLane(i) = '0' and r.fillOnFailEn = '1' then
                      v.tempDisableLane(i) := '1';
@@ -557,7 +573,7 @@ begin
                   end if;
                end if;  
             
-            elsif startRdSync = '1' then
+            elsif daqTriggerSync = '1' then
                v.state := TIMEOUT_S;
                -- Increment monitor registers before exit to TIMEOUT_S state
                for i in 0 to (LANES_NO_G-1) loop
@@ -572,7 +588,7 @@ begin
                   v.fillOnFailCnt := r.fillOnFailCnt + 1;
                end if;
             else -- if non of the above, increment fill-on-fail timeout counter
-               if (r.fillOnFailTimeoutCntr >= r.fillOnFailTimeoutOffset) then
+               if (r.fillOnFailTimeoutCntr >= r.fillOnFailTimeoutData) then
                   for i in 0 to (LANES_NO_G-1) loop
                      if dFifoValid(i) = '0' and r.disableLane(i) = '0' and r.fillOnFailEn = '1' then
                         v.tempDisableLane(i) := '1';
@@ -588,6 +604,7 @@ begin
             if v.txMaster.tValid = '0' then
                v.txMaster.tLast := '1';
                v.txMaster.tValid := '1';
+               v.sroReceived := '0';
                v.tempDisableLane := (others => '0');
                v.fillOnFailTimeoutCntr := (others => '0');
                ssiSetUserEofe(AXI_STREAM_CONFIG_I_C, v.txMaster, '1');
@@ -639,7 +656,7 @@ begin
             if r.dataCntLaneMin(i) >= r.dataCntLane(i) then
                v.dataCntLaneMin(i) := r.dataCntLane(i);
             end if;
-         elsif r.startRdSync(0) = '1' then                     -- startRdSync must be delayed few cycles as the same signal is taking the FSM out from DATA_S (condition above)
+         elsif r.daqTriggerSync(0) = '1' then                     -- daqTriggerSync must be delayed few cycles as the same signal is taking the FSM out from DATA_S (condition above)
             v.dataCntLane(i) := (others=>'0');                 -- reset counter before next data cycle
          elsif rxValid(i) = '1' and rxSof(i) = '0' then
             v.dataCntLane(i) := r.dataCntLane(i) + 1;
@@ -649,7 +666,7 @@ begin
          if r.rstCnt = '1' then
             v.dataDlyLaneReg(i)  := (others=>'0');
             v.dataDlyLane(i)     := (others=>'0');
-         elsif startRdSync = '1' then
+         elsif daqTriggerSync = '1' then
             v.dataDlyLane(i) := (others=>'0');
          -- Register data only on time of transition out of WAIT_SOF_S state
          elsif (r.stateD1 = WAIT_SOF_S and r.state /= WAIT_SOF_S) then

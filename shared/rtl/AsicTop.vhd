@@ -389,7 +389,8 @@ begin
             
                -- acquisition number input to the header
                acqNo             => boardConfigSig.acqCnt,
-               startRdout        => dataSendStreched
+               daqTrigger        => dataSendStreched,
+               sro               => iAsicSRO
             );
       end generate;
       
