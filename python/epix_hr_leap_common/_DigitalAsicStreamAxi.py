@@ -35,7 +35,7 @@ class DigitalAsicStreamAxi(pr.Device):
       self.add(pr.RemoteVariable(name='EnumerateDisLane',  description='Insert lane number into disabled lane.',      offset=0x00000030, bitSize=numberLanes,  bitOffset=0, base=pr.UInt, mode='RW'))
 
       self.add(pr.RemoteVariable(name='FillOnFailEn',               description='Dynamically handles failing lanes, inserts 0s',            offset=0x00000038, bitSize=1,   bitOffset=0, base=pr.UInt, disp = '{}', mode='RW', enum=yesNo))
-      self.add(pr.RemoteVariable(name='fillOnFailPeristantDisable', description='Failing lanes are perminantly disabled',                   offset=0x00000014, bitSize=1,   bitOffset=0, base=pr.UInt, disp = '{}', mode='RW', enum=yesNo))
+      self.add(pr.RemoteVariable(name='FillOnFailPersistantDisable',description='Failing lanes are perminantly disabled',                   offset=0x00000014, bitSize=1,   bitOffset=0, base=pr.UInt, disp = '{}', mode='RW', enum=yesNo))
       self.add(pr.RemoteVariable(name='SroToSofTimeout',            description='Timeout waiting for Sof After Sro',                        offset=0x0000003C, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
       self.add(pr.RemoteVariable(name='DataTimeout',                description='Timeout waiting for all lanes to send a single pixel',     offset=0x00000040, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
       self.add(pr.RemoteVariable(name='FillOnFailCnt',              description='No. of images where fill-on-fail was activated',           offset=0x00000044, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
