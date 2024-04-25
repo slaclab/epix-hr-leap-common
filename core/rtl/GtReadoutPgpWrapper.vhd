@@ -142,7 +142,8 @@ begin
 
    GEN_QPLL :
    for i in 1 downto 0 generate
-      U_QPLL : entity surf.Pgp3GthUsQpll  -- Same IP core for both PGPv3 and PGPv4
+      -- Same IP core for both PGPv3 and PGPv4
+      U_QPLL : entity surf.Pgp3GtyUsQpll
          generic map (
             TPD_G    => TPD_G,
             RATE_G   => FAST_PGP_RATE_C,
