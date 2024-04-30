@@ -86,7 +86,19 @@ architecture RTL of DigitalAsicStreamAxiV2 is
    -- PGP3 protocol is using 128bit (check for global constant for this configuration)
    
    type StateType is (IDLE_S, WAIT_SOF_S, HDR_S, DATA_S, TIMEOUT_S, TAIL_S);
-   
+
+   type LaneRegType is record
+      axilWriteSlave              : AxiLiteWriteSlaveType;
+      axilReadSlave               : AxiLiteReadSlaveType;
+   end record;
+
+   constant LANEREG_INIT_C : LaneRegType := (
+      axilWriteSlave              => AXI_LITE_WRITE_SLAVE_INIT_C,
+      axilReadSlave               => AXI_LITE_READ_SLAVE_INIT_C
+   );
+
+   type LaneRegArrayType is array (natural range <>) of LaneRegType;
+
    type RegType is record
       state                       : StateType;
       stateD1                     : StateType;
@@ -205,11 +217,14 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       axilReadSlave               => AXI_LITE_READ_SLAVE_INIT_C
    );
    
-   type RegArrayType is array (natural <range>) of RegType;
-
-   signal r   : RegArrayType(LANES_NO_G downto 0) := (others => REG_INIT_C);
-   signal rin : RegArrayType(LANES_NO_G downto 0) := (others => REG_INIT_C);
    
+
+   signal r   : RegType := REG_INIT_C;
+   signal rin : RegType := REG_INIT_C;
+
+   signal rLane   : LaneRegArrayType(LANES_NO_G-1 downto 0) := (others => LANEREG_INIT_C);
+   signal rinLane : LaneRegArrayType(LANES_NO_G-1 downto 0) := (others => LANEREG_INIT_C);
+
 
    signal dFifoRd       : slv(LANES_NO_G-1 downto 0);
    signal dFifoEofe     : slv(LANES_NO_G-1 downto 0);
@@ -253,7 +268,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
    constant NUM_AXIL_MASTERS_C                : natural := LANES_NO_G + LANE_BASE_AXI_INDEX_C;
 
 
-   constant XBAR_CONFIG_C  : AxiLiteCrossbarMasterConfigArray(NUM_AXIL_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXIL_MASTERS_C, AXIL_BASE_ADDR_G, 12, 8);
+   constant XBAR_CONFIG_C  : AxiLiteCrossbarMasterConfigArray(NUM_AXIL_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXIL_MASTERS_C, AXIL_BASE_ADDR_G, 16, 8);
 
    signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
    signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_SLVERR_C);
@@ -262,7 +277,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
 
 
    --attribute keep : string;
-   --attribute keep of r(0)           : signal is "true";
+   --attribute keep of r           : signal is "true";
    --attribute keep of daqTriggerSync : signal is "true";
    --attribute keep of dFifoEofe   : signal is "true";
    --attribute keep of dFifoEof    : signal is "true";
@@ -414,10 +429,10 @@ begin
       dFifoRst <= deserRst or daqTriggerSync;
       
       
-      dataExt : process(dFifoOut, r(0).disableLane, r(0).enumDisLane, r(0).tempDisableLane, r(0).fillOnFailEn)
+      dataExt : process(dFifoOut, r.disableLane, r.enumDisLane, r.tempDisableLane, r.fillOnFailEn)
       begin
-         if r(0).disableLane(i) = '1' or (r(0).fillOnFailEn = '1' and r(0).tempDisableLane(i) = '1') then
-            if r(0).enumDisLane(i) = '0' then
+         if r.disableLane(i) = '1' or (r.fillOnFailEn = '1' and r.tempDisableLane(i) = '1') then
+            if r.enumDisLane(i) = '0' then
                dFifoExtData(16*i+15 downto 16*i) <= (others => '0');
             else
                dFifoExtData(16*i+15 downto 16*i) <= toSlv(i,16);
@@ -429,65 +444,69 @@ begin
          
    end generate;
 
-   G_CROSSBAR_SPLIT : for i in LANES_NO_G downto 1 generate
+   G_CROSSBAR_SPLIT : for i in LANES_NO_G-1 downto 0 generate
       -- split registers with cross bar to close timing
-      crossbar_split : process (deserRst, r(i), axilReadMasters(LANE_BASE_AXI_INDEX_C+i-1), axilWriteMasters(LANE_BASE_AXI_INDEX_C+i-1)) is
-         variable v             : RegType;
+      crossbar_split : process (deserRst, rLane(i), r, axilReadMasters(LANE_BASE_AXI_INDEX_C+i), axilWriteMasters(LANE_BASE_AXI_INDEX_C+i)) is
+         variable v             : LaneRegType;
+         variable regCon        : AxiLiteEndPointType;
+         constant base          : slv(15 downto 0) := toSlv((i+1)*256, 16); -- 0x"0100" x laneNumber
       begin
-         axiSlaveWaitTxn(regCon,  axilWriteMasters(LANE_BASE_AXI_INDEX_C+i-1), axilReadMasters(LANE_BASE_AXI_INDEX_C+i-1), v.axilWriteSlave, v.axilReadSlave);
-         
+         v := rLane(i);
 
-         axiSlaveRegisterR(regCon, x"000"+toSlv(i*0x100,12),  0, r(0).timeoutCntLane(i));
-         axiSlaveRegisterR(regCon, x"004"+toSlv(i*0x100,12),  0, r(0).dataCntLane(i));
-         axiSlaveRegisterR(regCon, x"008"+toSlv(i*0x100,12),  0, r(0).dataCntLaneReg(i));
-         axiSlaveRegisterR(regCon, x"00C"+toSlv(i*0x100,12),  0, r(0).dataCntLaneMin(i));
-         axiSlaveRegisterR(regCon, x"010"+toSlv(i*0x100,12),  0, r(0).dataCntLaneMax(i));
-         axiSlaveRegisterR(regCon, x"014"+toSlv(i*0x100,12),  0, r(0).dataDlyLaneReg(i));
-         axiSlaveRegisterR(regCon, x"018"+toSlv(i*0x100,12),  0, r(0).dataOvfLane(i));
-         axiSlaveRegisterR(regCon, x"01C"+toSlv(i*0x100,12),  0, r(0).fillOnFailCntLane(i));
-         axiSlaveRegisterR(regCon, x"020"+toSlv(i*0x100,12),  0, r(0).sroToSofCntrReg(i));
+         axiSlaveWaitTxn(regCon,  axilWriteMasters(LANE_BASE_AXI_INDEX_C+i), axilReadMasters(LANE_BASE_AXI_INDEX_C+i), v.axilWriteSlave, v.axilReadSlave);
+         
+         -- offset 0x100 x i
+         axiSlaveRegisterR(regCon, x"0000"+base,  0, r.timeoutCntLane(i));
+         axiSlaveRegisterR(regCon, x"0004"+base,  0, r.dataCntLane(i));
+         axiSlaveRegisterR(regCon, x"0008"+base,  0, r.dataCntLaneReg(i));
+         axiSlaveRegisterR(regCon, x"000C"+base,  0, r.dataCntLaneMin(i));
+         axiSlaveRegisterR(regCon, x"0010"+base,  0, r.dataCntLaneMax(i));
+         axiSlaveRegisterR(regCon, x"0014"+base,  0, r.dataDlyLaneReg(i));
+         axiSlaveRegisterR(regCon, x"0018"+base,  0, r.dataOvfLane(i));
+         axiSlaveRegisterR(regCon, x"001C"+base,  0, r.fillOnFailCntLane(i));
+         axiSlaveRegisterR(regCon, x"0020"+base,  0, r.sroToSofCntrReg(i));
 
          
          axiSlaveDefault(regCon, v.axilWriteSlave, v.axilReadSlave, AXIL_ERR_RESP_G);
 
          -- reset logic      
          if (deserRst = '1') then
-            v := REG_INIT_C;
+            v := LANEREG_INIT_C;
          end if;
 
          -- outputs
-         rin(i) <= v;
+         rinLane(i) <= v;
 
-         axilWriteSlaves(LANE_BASE_AXI_INDEX_C+i-1) <= r(i).axilWriteSlave;
-         axilReadSlaves(LANE_BASE_AXI_INDEX_C+i-1)  <= r(i).axilReadSlave;
-      end
+         axilWriteSlaves(LANE_BASE_AXI_INDEX_C+i) <= rLane(i).axilWriteSlave;
+         axilReadSlaves(LANE_BASE_AXI_INDEX_C+i)  <= rLane(i).axilReadSlave;
+      end process;
    end generate;
 
    
-   comb : process (deserRst, axilReadMasters(GENERAL_AXI_INDEX_C), axilWriteMasters(GENERAL_AXI_INDEX_C), txSlave, r(0), 
+   comb : process (deserRst, axilReadMasters(GENERAL_AXI_INDEX_C), axilWriteMasters(GENERAL_AXI_INDEX_C), txSlave, r, 
       acqNoSync, dFifoExtData, dFifoValid, dFifoSof, dFifoEof, dFifoEofe, 
       daqTriggerSync, sroSync, rxValid, rxSof, rxEof, rxEofe, rxFull) is
       variable v             : RegType;
       variable regCon        : AxiLiteEndPointType;
       variable fillOnFailEnV : slv(LANES_NO_G-1 downto 0);
    begin
-      v := r(0);
+      v := r;
       
       v.rstCnt := '0';
       v.dFifoRd := (others=>'0');
-      v.stateD1 := r(0).state;
+      v.stateD1 := r.state;
       v.daqTriggerSync(3) := daqTriggerSync;
-      v.daqTriggerSync(2) := r(0).daqTriggerSync(3);
-      v.daqTriggerSync(1) := r(0).daqTriggerSync(2);
-      v.daqTriggerSync(0) := r(0).daqTriggerSync(1);
-      fillOnFailEnV := (others => r(0).fillOnFailEn);
+      v.daqTriggerSync(2) := r.daqTriggerSync(3);
+      v.daqTriggerSync(1) := r.daqTriggerSync(2);
+      v.daqTriggerSync(0) := r.daqTriggerSync(1);
+      fillOnFailEnV := (others => r.fillOnFailEn);
 
       axiSlaveWaitTxn(regCon, axilWriteMasters(GENERAL_AXI_INDEX_C), axilReadMasters(GENERAL_AXI_INDEX_C), v.axilWriteSlave, v.axilReadSlave);
       
-      axiSlaveRegisterR(regCon, x"000",  0, r(0).frmCnt);
-      axiSlaveRegisterR(regCon, x"004",  0, r(0).frmSize);
-      axiSlaveRegisterR(regCon, x"008",  0, r(0).frmMax);
-      axiSlaveRegisterR(regCon, x"00C",  0, r(0).frmMin);
+      axiSlaveRegisterR(regCon, x"000",  0, r.frmCnt);
+      axiSlaveRegisterR(regCon, x"004",  0, r.frmSize);
+      axiSlaveRegisterR(regCon, x"008",  0, r.frmMax);
+      axiSlaveRegisterR(regCon, x"00C",  0, r.frmMin);
       axiSlaveRegister (regCon, x"024",  0, v.rstCnt);
       axiSlaveRegister (regCon, x"028",  0, v.dataReqLane);
       axiSlaveRegister (regCon, x"02C",  0, v.disableLane);
@@ -497,27 +516,27 @@ begin
       axiSlaveRegister (regCon, x"014",  0, v.fillOnFailPeristantDisable);
       axiSlaveRegister (regCon, x"03C",  0, v.fillOnFailTimeoutWaitSof);
       axiSlaveRegister (regCon, x"040",  0, v.fillOnFailTimeoutData);
-      axiSlaveRegisterR(regCon, x"044",  0, r(0).fillOnFailCnt);
-      axiSlaveRegisterR(regCon, x"048",  0, r(0).fillOnFailLastMask);
-      axiSlaveRegisterR(regCon, x"04C",  0, std_logic_vector(to_unsigned(StateType'pos(r(0).state), 8))); 
-      axiSlaveRegisterR(regCon, x"05C",  0, r(0).wsofStateCntrMin);
-      axiSlaveRegisterR(regCon, x"060",  0, r(0).wsofStateCntrMax);
-      axiSlaveRegisterR(regCon, x"064",  0, r(0).wsofStateCntr);
-      axiSlaveRegisterR(regCon, x"068",  0, r(0).dataStateCntrMin);
-      axiSlaveRegisterR(regCon, x"06C",  0, r(0).dataStateCntrMax);
-      axiSlaveRegisterR(regCon, x"070",  0, r(0).dataStateCntr);
-      axiSlaveRegisterR(regCon, x"074",  0, r(0).hdrStateCntrMin);
-      axiSlaveRegisterR(regCon, x"078",  0, r(0).hdrStateCntrMax);
-      axiSlaveRegisterR(regCon, x"07C",  0, r(0).hdrStateCntr);
-      axiSlaveRegisterR(regCon, x"080",  0, r(0).frameCyclesCtrMin);
-      axiSlaveRegisterR(regCon, x"084",  0, r(0).frameCyclesCntrMax);
-      axiSlaveRegisterR(regCon, x"088",  0, r(0).frameCyclesCntr);
-      axiSlaveRegisterR(regCon, x"08C",  0, r(0).readyLowCyclesCtrMin);
-      axiSlaveRegisterR(regCon, x"090",  0, r(0).readyLowCyclesCtrMax);
-      axiSlaveRegisterR(regCon, x"094",  0, r(0).readyLowCyclesCtr);
-      axiSlaveRegisterR(regCon, x"098",  0, r(0).trigToSroCntrMin);
-      axiSlaveRegisterR(regCon, x"09C",  0, r(0).trigToSroCntrMax);
-      axiSlaveRegisterR(regCon, x"010",  0, r(0).trigToSroCntr);
+      axiSlaveRegisterR(regCon, x"044",  0, r.fillOnFailCnt);
+      axiSlaveRegisterR(regCon, x"048",  0, r.fillOnFailLastMask);
+      axiSlaveRegisterR(regCon, x"04C",  0, std_logic_vector(to_unsigned(StateType'pos(r.state), 8))); 
+      axiSlaveRegisterR(regCon, x"05C",  0, r.wsofStateCntrMin);
+      axiSlaveRegisterR(regCon, x"060",  0, r.wsofStateCntrMax);
+      axiSlaveRegisterR(regCon, x"064",  0, r.wsofStateCntr);
+      axiSlaveRegisterR(regCon, x"068",  0, r.dataStateCntrMin);
+      axiSlaveRegisterR(regCon, x"06C",  0, r.dataStateCntrMax);
+      axiSlaveRegisterR(regCon, x"070",  0, r.dataStateCntr);
+      axiSlaveRegisterR(regCon, x"074",  0, r.hdrStateCntrMin);
+      axiSlaveRegisterR(regCon, x"078",  0, r.hdrStateCntrMax);
+      axiSlaveRegisterR(regCon, x"07C",  0, r.hdrStateCntr);
+      axiSlaveRegisterR(regCon, x"080",  0, r.frameCyclesCtrMin);
+      axiSlaveRegisterR(regCon, x"084",  0, r.frameCyclesCntrMax);
+      axiSlaveRegisterR(regCon, x"088",  0, r.frameCyclesCntr);
+      axiSlaveRegisterR(regCon, x"08C",  0, r.readyLowCyclesCtrMin);
+      axiSlaveRegisterR(regCon, x"090",  0, r.readyLowCyclesCtrMax);
+      axiSlaveRegisterR(regCon, x"094",  0, r.readyLowCyclesCtr);
+      axiSlaveRegisterR(regCon, x"098",  0, r.trigToSroCntrMin);
+      axiSlaveRegisterR(regCon, x"09C",  0, r.trigToSroCntrMax);
+      axiSlaveRegisterR(regCon, x"010",  0, r.trigToSroCntr);
       
       axiSlaveDefault(regCon, v.axilWriteSlave, v.axilReadSlave, AXIL_ERR_RESP_G);
       
@@ -536,11 +555,11 @@ begin
          v.txMaster.tData  := (others => '0');
       end if;
       
-      case r(0).state is
+      case r.state is
          when IDLE_S =>
 
             -- reset temporary disable for autofill on failure
-            if r(0).fillOnFailPeristantDisable = '0' then
+            if r.fillOnFailPeristantDisable = '0' then
                v.tempDisableLane := (others => '0');
             end if;
             v.fillOnFailTimeoutCntr := (others => '0');
@@ -569,25 +588,25 @@ begin
             -- next SRO while waiting for previous SOF. Too late to recover using autoFillOnFailure
             for i in 0 to (LANES_NO_G-1) loop
                if daqTriggerSync = '1' and dFifoSof(i) = '0' then
-                  v.timeoutCntLane(i) := r(0).timeoutCntLane(i) + 1;
+                  v.timeoutCntLane(i) := r.timeoutCntLane(i) + 1;
                 end if;
             end loop;
             
-            if ((dFifoSof(LANES_NO_G-1 downto 0) or r(0).disableLane or (fillOnFailEnV and r(0).tempDisableLane)) = VECTOR_OF_ONES_C(LANES_NO_G-1 downto 0)) then
-               v.acqNo(1) := r(0).acqNo(0);
+            if ((dFifoSof(LANES_NO_G-1 downto 0) or r.disableLane or (fillOnFailEnV and r.tempDisableLane)) = VECTOR_OF_ONES_C(LANES_NO_G-1 downto 0)) then
+               v.acqNo(1) := r.acqNo(0);
                v.state := HDR_S;
                v.fillOnFailTimeoutCntr := (others => '0');
                -- 
             else -- If not transitioning to next state, count one to fillOnFail counter
-               if (r(0).fillOnFailTimeoutCntr < r(0).fillOnFailTimeoutWaitSof and r(0).sroReceived = '1') then
-                  v.fillOnFailTimeoutCntr := r(0).fillOnFailTimeoutCntr + 1;
+               if (r.fillOnFailTimeoutCntr < r.fillOnFailTimeoutWaitSof and r.sroReceived = '1') then
+                  v.fillOnFailTimeoutCntr := r.fillOnFailTimeoutCntr + 1;
                end if;
             end if;
 
             -- reach limit to fill on fail counter, disable lane temporarily for this image
-            if (r(0).fillOnFailTimeoutCntr >= r(0).fillOnFailTimeoutWaitSof) then
+            if (r.fillOnFailTimeoutCntr >= r.fillOnFailTimeoutWaitSof) then
                for i in 0 to (LANES_NO_G-1) loop
-                  if dFifoSof(i) = '0' and r(0).disableLane(i) = '0' and r(0).fillOnFailEn = '1' then
+                  if dFifoSof(i) = '0' and r.disableLane(i) = '0' and r.fillOnFailEn = '1' then
                      v.tempDisableLane(i) := '1';
                   end if;
                end loop;
@@ -603,7 +622,7 @@ begin
                v.txMaster.tValid := '1';
                v.state := DATA_S;
                v.txMaster.tData(31 downto  0) := x"000000" & LANE_NO_G & VC_NO_G;
-               v.txMaster.tData(63 downto 32) := r(0).acqNo(1)(31 downto 0);
+               v.txMaster.tData(63 downto 32) := r.acqNo(1)(31 downto 0);
                v.txMaster.tData(79 downto 64) := (15 downto 3 => '0') & ASIC_NO_G;
                v.txMaster.tData(95 downto 80) := x"0000";
                ssiSetUserSof(AXI_STREAM_CONFIG_I_C, v.txMaster, '1');
@@ -612,41 +631,41 @@ begin
 
          when DATA_S =>
             -- if comb valid is set to 0, means that ready is 1
-            if ((dFifoValid or r(0).disableLane or (r(0).tempDisableLane and fillOnFailEnV)) = VECTOR_OF_ONES_C(LANES_NO_G-1 downto 0)) and v.txMaster.tValid = '0' then
+            if ((dFifoValid or r.disableLane or (r.tempDisableLane and fillOnFailEnV)) = VECTOR_OF_ONES_C(LANES_NO_G-1 downto 0)) and v.txMaster.tValid = '0' then
                
                v.txMaster.tValid := '1';
                v.txMaster.tData(16*LANES_NO_G-1 downto 0) := dFifoExtData;
-               --v.txMaster.tData(16*LANES_NO_G-1 downto 0) := x"0000_0001_0002_0003_0004_0005_0006_0007_0008_0009_000A"  & r(0).stCnt;
+               --v.txMaster.tData(16*LANES_NO_G-1 downto 0) := x"0000_0001_0002_0003_0004_0005_0006_0007_0008_0009_000A"  & r.stCnt;
                
                v.fillOnFailTimeoutCntr := (others => '0');
                
                v.dFifoRd := (others=>'1');
                            
-               v.stCnt := r(0).stCnt + 1;
-               if r(0).stCnt = r(0).dataReqLane then 
-                  v.frmSize := r(0).stCnt;
+               v.stCnt := r.stCnt + 1;
+               if r.stCnt = r.dataReqLane then 
+                  v.frmSize := r.stCnt;
                   v.stCnt := (others=>'0');
                   
-                  if r(0).frmMax <= v.frmSize then
+                  if r.frmMax <= v.frmSize then
                      v.frmMax := v.frmSize;
                   end if;
                   
-                  if r(0).frmMin >= v.frmSize then
+                  if r.frmMin >= v.frmSize then
                      v.frmMin := v.frmSize;
                   end if;
                   
-                  v.frmCnt := r(0).frmCnt + 1;
+                  v.frmCnt := r.frmCnt + 1;
                   
                   v.state := TAIL_S;
 
                   -- Increment monitor registers before exit to IDLE state
                   for i in 0 to (LANES_NO_G-1) loop
-                     if r(0).tempDisableLane(i) = '1' and r(0).fillOnFailEn = '1' then
-                        v.fillOnFailCntLane(i) := r(0).fillOnFailCntLane(i) + 1;
+                     if r.tempDisableLane(i) = '1' and r.fillOnFailEn = '1' then
+                        v.fillOnFailCntLane(i) := r.fillOnFailCntLane(i) + 1;
                      end if;
                   end loop;                  
-                  if (r(0).fillOnFailEn = '1' and or_reduce(r(0).tempDisableLane) = '1') then
-                     v.fillOnFailCnt := r(0).fillOnFailCnt + 1;
+                  if (r.fillOnFailEn = '1' and or_reduce(r.tempDisableLane) = '1') then
+                     v.fillOnFailCnt := r.fillOnFailCnt + 1;
                   end if;
                end if;  
             
@@ -654,25 +673,25 @@ begin
                v.state := TIMEOUT_S;
                -- Increment monitor registers before exit to TIMEOUT_S state
                for i in 0 to (LANES_NO_G-1) loop
-                  if (dFifoValid(i) or r(0).disableLane(i)) = '0' then
-                     v.timeoutCntLane(i) := r(0).timeoutCntLane(i) + 1;
+                  if (dFifoValid(i) or r.disableLane(i)) = '0' then
+                     v.timeoutCntLane(i) := r.timeoutCntLane(i) + 1;
                   end if;
-                  if r(0).tempDisableLane(i) = '1' and r(0).fillOnFailEn = '1' then
-                     v.fillOnFailCntLane(i) := r(0).fillOnFailCntLane(i) + 1;
+                  if r.tempDisableLane(i) = '1' and r.fillOnFailEn = '1' then
+                     v.fillOnFailCntLane(i) := r.fillOnFailCntLane(i) + 1;
                   end if;
                end loop;
-               if (r(0).fillOnFailEn = '1' and or_reduce(r(0).tempDisableLane) = '1') then
-                  v.fillOnFailCnt := r(0).fillOnFailCnt + 1;
+               if (r.fillOnFailEn = '1' and or_reduce(r.tempDisableLane) = '1') then
+                  v.fillOnFailCnt := r.fillOnFailCnt + 1;
                end if;
             else -- if non of the above, increment fill-on-fail timeout counter
-               if (r(0).fillOnFailTimeoutCntr >= r(0).fillOnFailTimeoutData) then
+               if (r.fillOnFailTimeoutCntr >= r.fillOnFailTimeoutData) then
                   for i in 0 to (LANES_NO_G-1) loop
-                     if dFifoValid(i) = '0' and r(0).disableLane(i) = '0' and r(0).fillOnFailEn = '1' then
+                     if dFifoValid(i) = '0' and r.disableLane(i) = '0' and r.fillOnFailEn = '1' then
                         v.tempDisableLane(i) := '1';
                      end if;
                   end loop;
                else
-                  v.fillOnFailTimeoutCntr := r(0).fillOnFailTimeoutCntr + 1;
+                  v.fillOnFailTimeoutCntr := r.fillOnFailTimeoutCntr + 1;
                end if;               
             end if;
             v.fillOnFailLastMask := v.tempDisableLane;
@@ -696,7 +715,7 @@ begin
                v.txMaster.tValid := '1';
                v.txMaster.tLast := '1';
                v.state := IDLE_S;
-               v.txMaster.tData(63 downto 0) := x"00" & r(0).disableLane & x"00" & (fillOnFailEnV and r(0).tempDisableLane);
+               v.txMaster.tData(63 downto 0) := x"00" & r.disableLane & x"00" & (fillOnFailEnV and r.tempDisableLane);
                v.txMaster.tKeep  := ( others => '1');
                ssiSetUserEofe(AXI_STREAM_CONFIG_I_C, v.txMaster, '0');
             end if;
@@ -705,7 +724,7 @@ begin
       end case;
       
       -- reset counters
-      if r(0).rstCnt = '1' then
+      if r.rstCnt = '1' then
          v.frmCnt            := (others=>'0');
          v.frmSize           := (others=>'0');
          v.frmMax            := (others=>'0');
@@ -720,174 +739,174 @@ begin
          
          -- count incoming data per lane
          -- store min and max
-         if r(0).rstCnt = '1' then
+         if r.rstCnt = '1' then
             v.dataCntLaneReg(i)  := (others=>'0');
             v.dataCntLaneMin(i)  := (others=>'1');
             v.dataCntLaneMax(i)  := (others=>'0');
             v.dataCntLane(i)     := (others=>'0');
-         elsif (r(0).stateD1 = DATA_S and r(0).state /= DATA_S) then -- update actual, min, max register when leaving DATA_S (on timeout or normally)
-            v.dataCntLaneReg(i) := r(0).dataCntLane(i);
-            if r(0).dataCntLaneMax(i) <= r(0).dataCntLane(i) then
-               v.dataCntLaneMax(i) := r(0).dataCntLane(i);
+         elsif (r.stateD1 = DATA_S and r.state /= DATA_S) then -- update actual, min, max register when leaving DATA_S (on timeout or normally)
+            v.dataCntLaneReg(i) := r.dataCntLane(i);
+            if r.dataCntLaneMax(i) <= r.dataCntLane(i) then
+               v.dataCntLaneMax(i) := r.dataCntLane(i);
             end if;
-            if r(0).dataCntLaneMin(i) >= r(0).dataCntLane(i) then
-               v.dataCntLaneMin(i) := r(0).dataCntLane(i);
+            if r.dataCntLaneMin(i) >= r.dataCntLane(i) then
+               v.dataCntLaneMin(i) := r.dataCntLane(i);
             end if;
-         elsif r(0).daqTriggerSync(0) = '1' then                     -- daqTriggerSync must be delayed few cycles as the same signal is taking the FSM out from DATA_S (condition above)
+         elsif r.daqTriggerSync(0) = '1' then                     -- daqTriggerSync must be delayed few cycles as the same signal is taking the FSM out from DATA_S (condition above)
             v.dataCntLane(i) := (others=>'0');                 -- reset counter before next data cycle
          elsif rxValid(i) = '1' and rxSof(i) = '0' then
-            v.dataCntLane(i) := r(0).dataCntLane(i) + 1;
+            v.dataCntLane(i) := r.dataCntLane(i) + 1;
          end if;
          
          -- count delay from SRO to SOF
-         if r(0).rstCnt = '1' then
+         if r.rstCnt = '1' then
             v.dataDlyLaneReg(i)  := (others=>'0');
             v.dataDlyLane(i)     := (others=>'0');
          elsif daqTriggerSync = '1' then
             v.dataDlyLane(i) := (others=>'0');
          -- Register data only on time of transition out of WAIT_SOF_S state
-         elsif (r(0).stateD1 = WAIT_SOF_S and r(0).state /= WAIT_SOF_S) then
-            v.dataDlyLaneReg(i) := r(0).dataDlyLane(i);
+         elsif (r.stateD1 = WAIT_SOF_S and r.state /= WAIT_SOF_S) then
+            v.dataDlyLaneReg(i) := r.dataDlyLane(i);
          -- Check if there is not data on that lane in this cycle (only significant in WAIT_SOF_S state)
-         elsif dFifoSof(i) = '0' and r(0).dataDlyLane(i) /= x"ffff" then
-            v.dataDlyLane(i) := r(0).dataDlyLane(i) + 1;
+         elsif dFifoSof(i) = '0' and r.dataDlyLane(i) /= x"ffff" then
+            v.dataDlyLane(i) := r.dataDlyLane(i) + 1;
          end if;
          
          -- count writes to full FIFO (overflow)
-         if r(0).rstCnt = '1' then
+         if r.rstCnt = '1' then
             v.dataOvfLane(i) := (others=>'0');
-         elsif rxFull(i) = '1' and rxValid(i) = '1' and r(0).dataOvfLane(i) /= x"ffff" then
-            v.dataOvfLane(i) := r(0).dataOvfLane(i) + 1;
+         elsif rxFull(i) = '1' and rxValid(i) = '1' and r.dataOvfLane(i) /= x"ffff" then
+            v.dataOvfLane(i) := r.dataOvfLane(i) + 1;
          end if;
 
-         if r(0).rstCnt = '1' then
+         if r.rstCnt = '1' then
             v.sroToSofCntrReg(i)  := (others=>'0');
             v.sroToSofCntr(i)     := (others=>'0');
          elsif daqTriggerSync = '1' then
             v.sroToSofCntr(i) := (others=>'0');
          -- Register data only on time of transition out of WAIT_SOF_S state
-         elsif (r(0).stateD1 = WAIT_SOF_S and r(0).state /= WAIT_SOF_S) then
-            v.sroToSofCntrReg(i) := r(0).sroToSofCntr(i);
+         elsif (r.stateD1 = WAIT_SOF_S and r.state /= WAIT_SOF_S) then
+            v.sroToSofCntrReg(i) := r.sroToSofCntr(i);
          -- Check if there is not data on that lane in this cycle (only significant in WAIT_SOF_S state)
-         elsif dFifoSof(i) = '0' and r(0).sroReceived = '1' and r(0).sroToSofCntr(i) /= x"ffff" then
-            v.sroToSofCntr(i) := r(0).sroToSofCntr(i) + 1;
+         elsif dFifoSof(i) = '0' and r.sroReceived = '1' and r.sroToSofCntr(i) /= x"ffff" then
+            v.sroToSofCntr(i) := r.sroToSofCntr(i) + 1;
          end if;
          
       end loop;
 
-      if r(0).rstCnt = '1' then
+      if r.rstCnt = '1' then
          v.wsofStateCntrMin  := (others=>'1');
          v.wsofStateCntrMax  := (others=>'0');
          v.wsofStateCntr     := (others=>'0');
       else
-         if (r(0).stateD1 = WAIT_SOF_S and r(0).state /= WAIT_SOF_S) then -- update actual, min, max register when leaving DATA_S (on timeout or normally)
-            if r(0).wsofStateCntrMax <= r(0).wsofStateCntr then
-               v.wsofStateCntrMax := r(0).wsofStateCntr;
+         if (r.stateD1 = WAIT_SOF_S and r.state /= WAIT_SOF_S) then -- update actual, min, max register when leaving DATA_S (on timeout or normally)
+            if r.wsofStateCntrMax <= r.wsofStateCntr then
+               v.wsofStateCntrMax := r.wsofStateCntr;
             end if;
-            if r(0).wsofStateCntrMin >= r(0).wsofStateCntr then
-               v.wsofStateCntrMin := r(0).wsofStateCntr;
+            if r.wsofStateCntrMin >= r.wsofStateCntr then
+               v.wsofStateCntrMin := r.wsofStateCntr;
             end if;
             v.wsofStateCntr := (others=>'0');
-         elsif (r(0).state = WAIT_SOF_S) then
-            v.wsofStateCntr := r(0).wsofStateCntr + 1;
+         elsif (r.state = WAIT_SOF_S) then
+            v.wsofStateCntr := r.wsofStateCntr + 1;
          end if;
       end if;
 
-      if r(0).rstCnt = '1' then
+      if r.rstCnt = '1' then
          v.dataStateCntrMin  := (others=>'1');
          v.dataStateCntrMax  := (others=>'0');
          v.dataStateCntr     := (others=>'0');
       else
-         if (r(0).stateD1 = DATA_S and r(0).state /= DATA_S) then -- update actual, min, max register when leaving DATA_S (on timeout or normally)
-            if r(0).dataStateCntrMax <= r(0).dataStateCntr then
-               v.dataStateCntrMax := r(0).dataStateCntr;
+         if (r.stateD1 = DATA_S and r.state /= DATA_S) then -- update actual, min, max register when leaving DATA_S (on timeout or normally)
+            if r.dataStateCntrMax <= r.dataStateCntr then
+               v.dataStateCntrMax := r.dataStateCntr;
             end if;
-            if r(0).dataStateCntrMin >= r(0).dataStateCntr then
-               v.dataStateCntrMin := r(0).dataStateCntr;
+            if r.dataStateCntrMin >= r.dataStateCntr then
+               v.dataStateCntrMin := r.dataStateCntr;
             end if;
             v.dataStateCntr := (others=>'0');
-         elsif (r(0).state = DATA_S) then
-            v.dataStateCntr := r(0).dataStateCntr + 1;
+         elsif (r.state = DATA_S) then
+            v.dataStateCntr := r.dataStateCntr + 1;
          end if;
       end if;
 
-      if r(0).rstCnt = '1' then
+      if r.rstCnt = '1' then
          v.hdrStateCntrMin  := (others=>'1');
          v.hdrStateCntrMax  := (others=>'0');
          v.hdrStateCntr     := (others=>'0');
       -- when previous state is HDR_S and current state is not. Meaning leaving HDR_S
       else
-         if (r(0).stateD1 = HDR_S and r(0).state /= HDR_S) then
-            if r(0).hdrStateCntrMax <= r(0).hdrStateCntr then
-               v.hdrStateCntrMax := r(0).hdrStateCntr;
+         if (r.stateD1 = HDR_S and r.state /= HDR_S) then
+            if r.hdrStateCntrMax <= r.hdrStateCntr then
+               v.hdrStateCntrMax := r.hdrStateCntr;
             end if;
-            if r(0).hdrStateCntrMin >= r(0).hdrStateCntr then
-               v.hdrStateCntrMin := r(0).hdrStateCntr;
+            if r.hdrStateCntrMin >= r.hdrStateCntr then
+               v.hdrStateCntrMin := r.hdrStateCntr;
             end if;
             v.hdrStateCntr := (others=>'0');
          -- When current state is not HDR_S
-         elsif (r(0).state = HDR_S) then
-            v.hdrStateCntr := r(0).hdrStateCntr + 1;
+         elsif (r.state = HDR_S) then
+            v.hdrStateCntr := r.hdrStateCntr + 1;
          end if;
       end if;
 
-      if r(0).rstCnt = '1' then
+      if r.rstCnt = '1' then
          v.frameCyclesCtrMin  := (others=>'1');
          v.frameCyclesCntrMax  := (others=>'0');
          v.frameCyclesCntr     := (others=>'0');
       -- When previous state was not IDLE_S and current state is IDLE_S. Meaning entering IDLE_S state.
       else
-         if (r(0).stateD1 /= IDLE_S and r(0).state = IDLE_S) or (r(0).state = TIMEOUT_S) then 
-            if r(0).frameCyclesCntrMax <= r(0).frameCyclesCntr then
-               v.frameCyclesCntrMax := r(0).frameCyclesCntr;
+         if (r.stateD1 /= IDLE_S and r.state = IDLE_S) or (r.state = TIMEOUT_S) then 
+            if r.frameCyclesCntrMax <= r.frameCyclesCntr then
+               v.frameCyclesCntrMax := r.frameCyclesCntr;
             end if;
-            if r(0).frameCyclesCtrMin >= r(0).frameCyclesCntr then
-               v.frameCyclesCtrMin := r(0).frameCyclesCntr;
+            if r.frameCyclesCtrMin >= r.frameCyclesCntr then
+               v.frameCyclesCtrMin := r.frameCyclesCntr;
             end if;
          end if;
       -- when previous state is IDLE_S and current state is not. Meaning leaving IDLE_S
-         if (r(0).stateD1 = IDLE_S and r(0).state /= IDLE_S) or (r(0).state = TIMEOUT_S) then
+         if (r.stateD1 = IDLE_S and r.state /= IDLE_S) or (r.state = TIMEOUT_S) then
             v.frameCyclesCntr := (others=>'0');
-         elsif (r(0).state /= IDLE_S) then
-            v.frameCyclesCntr := r(0).frameCyclesCntr + 1;
+         elsif (r.state /= IDLE_S) then
+            v.frameCyclesCntr := r.frameCyclesCntr + 1;
          end if;
       end if;
 
-      if r(0).rstCnt = '1' then
+      if r.rstCnt = '1' then
          v.readyLowCyclesCtrMin  := (others=>'1');
          v.readyLowCyclesCtrMax  := (others=>'0');
          v.readyLowCyclesCtr     := (others=>'0');
       else
-         if (r(0).stateD1 = DATA_S and r(0).state /= DATA_S) or (r(0).state = TIMEOUT_S) then 
-            if r(0).readyLowCyclesCtrMax <= r(0).readyLowCyclesCtr then
-               v.readyLowCyclesCtrMax := r(0).readyLowCyclesCtr;
+         if (r.stateD1 = DATA_S and r.state /= DATA_S) or (r.state = TIMEOUT_S) then 
+            if r.readyLowCyclesCtrMax <= r.readyLowCyclesCtr then
+               v.readyLowCyclesCtrMax := r.readyLowCyclesCtr;
             end if;
-            if r(0).readyLowCyclesCtrMin >= r(0).readyLowCyclesCtr then
-               v.readyLowCyclesCtrMin := r(0).readyLowCyclesCtr;
+            if r.readyLowCyclesCtrMin >= r.readyLowCyclesCtr then
+               v.readyLowCyclesCtrMin := r.readyLowCyclesCtr;
             end if;
             v.readyLowCyclesCtr := (others=>'0');
          end if;
       -- when previous state is DATA_S and current state is not. Meaning leaving DATA_S
-         if (r(0).state = DATA_S and txSlave.tReady = '0') then
-            v.readyLowCyclesCtr := r(0).readyLowCyclesCtr + 1;
+         if (r.state = DATA_S and txSlave.tReady = '0') then
+            v.readyLowCyclesCtr := r.readyLowCyclesCtr + 1;
          end if;
       end if;
 
-      if r(0).rstCnt = '1' then
+      if r.rstCnt = '1' then
          v.trigToSroCntrMin   := (others=>'1');
          v.trigToSroCntrMax  := (others=>'0');
          v.trigToSroCntr     := (others=>'0');
       else
       -- when current state is WAIT_SOF_S and not yet received the SRO signal
-         if (r(0).state = WAIT_SOF_S and r(0).sroReceived = '0') then
-            v.trigToSroCntr := r(0).trigToSroCntr + 1;
+         if (r.state = WAIT_SOF_S and r.sroReceived = '0') then
+            v.trigToSroCntr := r.trigToSroCntr + 1;
          end if;
-         if (r(0).state = WAIT_SOF_S and sroSync = '1') then 
-            if r(0).trigToSroCntrMax <= r(0).trigToSroCntr then
-               v.trigToSroCntrMax := r(0).trigToSroCntr;
+         if (r.state = WAIT_SOF_S and sroSync = '1') then 
+            if r.trigToSroCntrMax <= r.trigToSroCntr then
+               v.trigToSroCntrMax := r.trigToSroCntr;
             end if;
-            if r(0).trigToSroCntrMin >= r(0).trigToSroCntr then
-               v.trigToSroCntrMin := r(0).trigToSroCntr;
+            if r.trigToSroCntrMin >= r.trigToSroCntr then
+               v.trigToSroCntrMin := r.trigToSroCntr;
             end if;
             v.trigToSroCntr := (others=>'0');
          end if;
@@ -901,10 +920,10 @@ begin
 
       -- outputs
       
-      rin(0) <= v;
+      rin <= v;
 
-      axilWriteSlaves(GENERAL_AXI_INDEX_C) <= r(0).axilWriteSlave;
-      axilReadSlaves(GENERAL_AXI_INDEX_C)  <= r(0).axilReadSlave;
+      axilWriteSlaves(GENERAL_AXI_INDEX_C) <= r.axilWriteSlave;
+      axilReadSlaves(GENERAL_AXI_INDEX_C)  <= r.axilReadSlave;
       dFifoRd                              <= v.dFifoRd;
 
    end process comb;
@@ -912,8 +931,9 @@ begin
    seq : process (deserClk) is
    begin
       if (rising_edge(deserClk)) then
-         for i in 0 to (LANES_NO_G) loop
-            r(i) <= rin(i) after TPD_G;             
+         r <= rin after TPD_G;             
+         for i in 0 to (LANES_NO_G-1) loop
+            rLane(i) <= rinLane(i) after TPD_G;             
          end loop;         
         
       end if;
@@ -938,7 +958,7 @@ begin
    port map(
       sAxisClk    => deserClk,
       sAxisRst    => deserRst,
-      sAxisMaster => r(0).txMaster,
+      sAxisMaster => r.txMaster,
       sAxisSlave  => txSlave,
       mAxisClk    => axisClk,
       mAxisRst    => axisRst,

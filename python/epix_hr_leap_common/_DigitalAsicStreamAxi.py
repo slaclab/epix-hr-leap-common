@@ -67,11 +67,11 @@ class DigitalAsicStreamAxi(pr.Device):
       self.addRemoteVariables(
          name         = 'SroToSofCntr',
          description  = 'counts the number of cycles between the arrival of SRO and the SOF',
-         offset       = 0x900,
+         offset       = 0x020,
          bitSize      = 16,
          mode         = 'RO',
          number       = numberLanes,
-         stride       = 4,
+         stride       = 0x100,
          pollInterval = 1,
          disp         = '{}', 
       )
@@ -79,11 +79,11 @@ class DigitalAsicStreamAxi(pr.Device):
       self.addRemoteVariables(
          name         = 'TimeoutCntLane',
          description  = 'Count of times SM waiting for data till next trigger',
-         offset       = 0x100,
+         offset       = 0x000,
          bitSize      = 16,
          mode         = 'RO',
          number       = numberLanes,
-         stride       = 4,
+         stride       = 0x100,
          pollInterval = 1,
          disp         = '{}', 
       )
@@ -91,11 +91,11 @@ class DigitalAsicStreamAxi(pr.Device):
       self.addRemoteVariables(
          name         = 'DataCntLaneAct',
          description  = 'Last data cycle count. Should be the same as asicDataReq',
-         offset       = 0x200,
+         offset       = 0x004,
          bitSize      = 16,
          mode         = 'RO',
          number       = numberLanes,
-         stride       = 4,
+         stride       = 0x100,
          pollInterval = 1,
          disp         = '{}', 
       )
@@ -103,11 +103,11 @@ class DigitalAsicStreamAxi(pr.Device):
       self.addRemoteVariables(
          name         = 'DataCntLaneReg',
          description  = 'Last data cycle count when leaving DATA_S state. Should be the same as asicDataReq',
-         offset       = 0x300,
+         offset       = 0x008,
          bitSize      = 16,
          mode         = 'RO',
          number       = numberLanes,
-         stride       = 4,
+         stride       = 0x100,
          pollInterval = 1,
          disp         = '{}', 
       )
@@ -115,11 +115,11 @@ class DigitalAsicStreamAxi(pr.Device):
       self.addRemoteVariables(
          name         = 'DataCntLaneMin',
          description  = 'Minimum data cycles counted when leaving DATA_S state. Should be the same as asicDataReq',
-         offset       = 0x400,
+         offset       = 0x00C,
          bitSize      = 16,
          mode         = 'RO',
          number       = numberLanes,
-         stride       = 4,
+         stride       = 0x100,
          pollInterval = 1,
          disp         = '{}', 
       )
@@ -127,11 +127,11 @@ class DigitalAsicStreamAxi(pr.Device):
       self.addRemoteVariables(
          name         = 'DataCntLaneMax',
          description  = 'MAx. data cycles counted when leaving DATA_S state. Should be the same as asicDataReq',
-         offset       = 0x500,
+         offset       = 0x010,
          bitSize      = 16,
          mode         = 'RO',
          number       = numberLanes,
-         stride       = 4,
+         stride       = 0x100,
          pollInterval = 1,
          disp         = '{}', 
       )
@@ -139,11 +139,11 @@ class DigitalAsicStreamAxi(pr.Device):
       self.addRemoteVariables(
          name         = 'DataDlyLaneReg',
          description  = 'Number of cycles until SM transitions out of WAIT_SOF_S state (delay)',
-         offset       = 0x600,
+         offset       = 0x0014,
          bitSize      = 16,
          mode         = 'RO',
          number       = numberLanes,
-         stride       = 4,
+         stride       = 0x100,
          pollInterval = 1,
          disp         = '{}',  
       )
@@ -151,11 +151,11 @@ class DigitalAsicStreamAxi(pr.Device):
       self.addRemoteVariables(
          name         = 'DataOvfLane',
          description  = 'counts the times overflow happens (Fifo Full + new data available)',
-         offset       = 0x700,
+         offset       = 0x0018,
          bitSize      = 16,
          mode         = 'RO',
          number       = numberLanes,
-         stride       = 4,
+         stride       = 0x100,
          pollInterval = 1,
          disp         = '{}', 
       )
@@ -163,11 +163,11 @@ class DigitalAsicStreamAxi(pr.Device):
       self.addRemoteVariables(
          name         = 'FillOnFailCntLane',
          description  = 'counts the times a lane is temporarily disabled after a failure was detected',
-         offset       = 0x800,
+         offset       = 0x001C,
          bitSize      = 32,
          mode         = 'RO',
          number       = numberLanes,
-         stride       = 4,
+         stride       = 0x100,
          pollInterval = 1,
          disp         = '{}', 
       )
