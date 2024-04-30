@@ -360,6 +360,7 @@ begin
                LANE_NO_G           => toSlv(i, 4),
                ASIC_NO_G           => toSlv(i, 3),
                LANES_NO_G          => 24,
+               AXIL_BASE_ADDR_G    => XBAR_CONFIG_C(DIG_ASIC_BASE_STREAM_AXI_INDEX_C + i).baseAddr,
                AXIL_ERR_RESP_G     => AXI_RESP_DECERR_C,
                INVERT_BITS_G       => INVERT_BITS_G
                )
