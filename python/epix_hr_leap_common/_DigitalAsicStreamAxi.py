@@ -65,7 +65,7 @@ class DigitalAsicStreamAxi(pr.Device):
 
       for i in range(1, numberLanes+1):
          self.add(pr.RemoteVariable(
-            name         = f'SroToSofCntr[{i}]',
+            name         = f'SroToSofCntr[{i-1}]',
             description  = 'counts the number of cycles between the arrival of SRO and the SOF',
             offset       = 0x020 + i*0x100,
             bitSize      = 16,
@@ -76,7 +76,7 @@ class DigitalAsicStreamAxi(pr.Device):
 
       for i in range(1, numberLanes+1):
          self.add(pr.RemoteVariable(
-         name         = f'TimeoutCntLane[{i}]',
+         name         = f'TimeoutCntLane[{i-1}]',
          description  = 'Count of times SM waiting for data till next trigger',
          offset       = 0x000 + i*0x100,
          bitSize      = 16,
@@ -87,7 +87,7 @@ class DigitalAsicStreamAxi(pr.Device):
       
       for i in range(1, numberLanes+1):
          self.add(pr.RemoteVariable(
-         name         = f'DataCntLaneAct[{i}]',
+         name         = f'DataCntLaneAct[{i-1}]',
          description  = 'Last data cycle count. Should be the same as asicDataReq',
          offset       = 0x004 + i*0x100,
          bitSize      = 16,
@@ -98,7 +98,7 @@ class DigitalAsicStreamAxi(pr.Device):
       
       for i in range(1, numberLanes+1):
          self.add(pr.RemoteVariable(
-         name         = f'DataCntLaneReg[{i}]',
+         name         = f'DataCntLaneReg[{i-1}]',
          description  = 'Last data cycle count when leaving DATA_S state. Should be the same as asicDataReq',
          offset       = 0x008 + i*0x100,
          bitSize      = 16,
@@ -109,7 +109,7 @@ class DigitalAsicStreamAxi(pr.Device):
       
       for i in range(1, numberLanes+1):
          self.add(pr.RemoteVariable(
-         name         = f'DataCntLaneMin[{i}]',
+         name         = f'DataCntLaneMin[{i-1}]',
          description  = 'Minimum data cycles counted when leaving DATA_S state. Should be the same as asicDataReq',
          offset       = 0x00C + i*0x100,
          bitSize      = 16,
@@ -120,7 +120,7 @@ class DigitalAsicStreamAxi(pr.Device):
       
       for i in range(1, numberLanes+1):
          self.add(pr.RemoteVariable(
-         name         = f'DataCntLaneMax[{i}]',
+         name         = f'DataCntLaneMax[{i-1}]',
          description  = 'MAx. data cycles counted when leaving DATA_S state. Should be the same as asicDataReq',
          offset       = 0x010 + i*0x100,
          bitSize      = 16,
@@ -131,7 +131,7 @@ class DigitalAsicStreamAxi(pr.Device):
       
       for i in range(1, numberLanes+1):
          self.add(pr.RemoteVariable(
-         name         = f'DataDlyLaneReg[{i}]',
+         name         = f'DataDlyLaneReg[{i-1}]',
          description  = 'Number of cycles until SM transitions out of WAIT_SOF_S state (delay)',
          offset       = 0x0014 + i*0x100,
          bitSize      = 16,
@@ -142,7 +142,7 @@ class DigitalAsicStreamAxi(pr.Device):
       
       for i in range(1, numberLanes+1):
          self.add(pr.RemoteVariable(
-         name         = f'DataOvfLane[{i}]',
+         name         = f'DataOvfLane[{i-1}]',
          description  = 'counts the times overflow happens (Fifo Full + new data available)',
          offset       = 0x0018 + i*0x100,
          bitSize      = 16,
@@ -153,7 +153,7 @@ class DigitalAsicStreamAxi(pr.Device):
 
       for i in range(1, numberLanes+1):
          self.add(pr.RemoteVariable(
-         name         = f'FillOnFailCntLane[{i}]',
+         name         = f'FillOnFailCntLane[{i-1}]',
          description  = 'counts the times a lane is temporarily disabled after a failure was detected',
          offset       = 0x001C + i*0x100,
          bitSize      = 32,
