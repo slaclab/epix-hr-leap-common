@@ -311,8 +311,8 @@ begin
       mAxiWriteSlaves     => axilWriteSlaves,
       mAxiReadMasters     => axilReadMasters,
       mAxiReadSlaves      => axilReadSlaves,
-      axiClk              => axilClk,
-      axiClkRst           => axilRst);
+      axiClk              => deserClk,
+      axiClkRst           => deserRst);
 
       
    ----------------------------------------------------------------------------

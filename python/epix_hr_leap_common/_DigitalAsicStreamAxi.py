@@ -24,7 +24,7 @@ class DigitalAsicStreamAxi(pr.Device):
 
       yesNo = { 0 : "Disabled",
                 1 : "Enabled" }
-      
+
       self.add(pr.RemoteVariable(name='FrameCount',        description='Complete frame count',                                  offset=0x00000000, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO', pollInterval = 1))
       self.add(pr.RemoteVariable(name='FrameSize',         description='Complete frame size',                                   offset=0x00000004, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO', pollInterval = 1))
       self.add(pr.RemoteVariable(name='FrameMaxSize',      description='Max frame size',                                offset=0x00000008, bitSize=16,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO', pollInterval = 1))
@@ -63,115 +63,105 @@ class DigitalAsicStreamAxi(pr.Device):
       self.add(pr.RemoteVariable(name='TrigToSroCntrMax', description='', offset=0x0000009C, bitSize=16,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
       self.add(pr.RemoteVariable(name='TrigToSroCntr', description='', offset=0x00000010, bitSize=16,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
 
+      for i in range(1, numberLanes+1):
+         self.add(pr.RemoteVariable(
+            name         = f'SroToSofCntr[{i}]',
+            description  = 'counts the number of cycles between the arrival of SRO and the SOF',
+            offset       = 0x020 + i*0x100,
+            bitSize      = 16,
+            mode         = 'RO',
+            pollInterval = 1,
+            disp         = '{}', 
+         ))
 
-      self.addRemoteVariables(
-         name         = 'SroToSofCntr',
-         description  = 'counts the number of cycles between the arrival of SRO and the SOF',
-         offset       = 0x020,
-         bitSize      = 16,
-         mode         = 'RO',
-         number       = numberLanes,
-         stride       = 0x100,
-         pollInterval = 1,
-         disp         = '{}', 
-      )
-
-      self.addRemoteVariables(
-         name         = 'TimeoutCntLane',
+      for i in range(1, numberLanes+1):
+         self.add(pr.RemoteVariable(
+         name         = f'TimeoutCntLane[{i}]',
          description  = 'Count of times SM waiting for data till next trigger',
-         offset       = 0x000,
+         offset       = 0x000 + i*0x100,
          bitSize      = 16,
          mode         = 'RO',
-         number       = numberLanes,
-         stride       = 0x100,
          pollInterval = 1,
          disp         = '{}', 
-      )
+      ))
       
-      self.addRemoteVariables(
-         name         = 'DataCntLaneAct',
+      for i in range(1, numberLanes+1):
+         self.add(pr.RemoteVariable(
+         name         = f'DataCntLaneAct[{i}]',
          description  = 'Last data cycle count. Should be the same as asicDataReq',
-         offset       = 0x004,
+         offset       = 0x004 + i*0x100,
          bitSize      = 16,
          mode         = 'RO',
-         number       = numberLanes,
-         stride       = 0x100,
          pollInterval = 1,
          disp         = '{}', 
-      )
+      ))
       
-      self.addRemoteVariables(
-         name         = 'DataCntLaneReg',
+      for i in range(1, numberLanes+1):
+         self.add(pr.RemoteVariable(
+         name         = f'DataCntLaneReg[{i}]',
          description  = 'Last data cycle count when leaving DATA_S state. Should be the same as asicDataReq',
-         offset       = 0x008,
+         offset       = 0x008 + i*0x100,
          bitSize      = 16,
          mode         = 'RO',
-         number       = numberLanes,
-         stride       = 0x100,
          pollInterval = 1,
          disp         = '{}', 
-      )
+      ))
       
-      self.addRemoteVariables(
-         name         = 'DataCntLaneMin',
+      for i in range(1, numberLanes+1):
+         self.add(pr.RemoteVariable(
+         name         = f'DataCntLaneMin[{i}]',
          description  = 'Minimum data cycles counted when leaving DATA_S state. Should be the same as asicDataReq',
-         offset       = 0x00C,
+         offset       = 0x00C + i*0x100,
          bitSize      = 16,
          mode         = 'RO',
-         number       = numberLanes,
-         stride       = 0x100,
          pollInterval = 1,
          disp         = '{}', 
-      )
+      ))
       
-      self.addRemoteVariables(
-         name         = 'DataCntLaneMax',
+      for i in range(1, numberLanes+1):
+         self.add(pr.RemoteVariable(
+         name         = f'DataCntLaneMax[{i}]',
          description  = 'MAx. data cycles counted when leaving DATA_S state. Should be the same as asicDataReq',
-         offset       = 0x010,
+         offset       = 0x010 + i*0x100,
          bitSize      = 16,
          mode         = 'RO',
-         number       = numberLanes,
-         stride       = 0x100,
          pollInterval = 1,
          disp         = '{}', 
-      )
+      ))
       
-      self.addRemoteVariables(
-         name         = 'DataDlyLaneReg',
+      for i in range(1, numberLanes+1):
+         self.add(pr.RemoteVariable(
+         name         = f'DataDlyLaneReg[{i}]',
          description  = 'Number of cycles until SM transitions out of WAIT_SOF_S state (delay)',
-         offset       = 0x0014,
+         offset       = 0x0014 + i*0x100,
          bitSize      = 16,
          mode         = 'RO',
-         number       = numberLanes,
-         stride       = 0x100,
          pollInterval = 1,
          disp         = '{}',  
-      )
+      ))
       
-      self.addRemoteVariables(
-         name         = 'DataOvfLane',
+      for i in range(1, numberLanes+1):
+         self.add(pr.RemoteVariable(
+         name         = f'DataOvfLane[{i}]',
          description  = 'counts the times overflow happens (Fifo Full + new data available)',
-         offset       = 0x0018,
+         offset       = 0x0018 + i*0x100,
          bitSize      = 16,
          mode         = 'RO',
-         number       = numberLanes,
-         stride       = 0x100,
          pollInterval = 1,
          disp         = '{}', 
-      )
+      ))
 
-      self.addRemoteVariables(
-         name         = 'FillOnFailCntLane',
+      for i in range(1, numberLanes+1):
+         self.add(pr.RemoteVariable(
+         name         = f'FillOnFailCntLane[{i}]',
          description  = 'counts the times a lane is temporarily disabled after a failure was detected',
-         offset       = 0x001C,
+         offset       = 0x001C + i*0x100,
          bitSize      = 32,
          mode         = 'RO',
-         number       = numberLanes,
-         stride       = 0x100,
          pollInterval = 1,
          disp         = '{}', 
-      )
+      ))
 
       self.add(pr.RemoteCommand(name='CountReset', description='Resets counters', 
                              offset=0x00000024, bitSize=1, bitOffset=0, function=pr.Command.touchOne))
-      
+
