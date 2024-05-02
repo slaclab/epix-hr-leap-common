@@ -40,9 +40,11 @@ entity Core is
       NUM_OF_PSCOPE_G      : integer         := 4;
       NUM_OF_SLOW_ADCS_G   : integer         := 4;
       MEMORY_INIT_FILE_G   : string          := "none";
-      PGP_SPEED_G          : string          := "SLOW"; --either "SLOW" or "FAST"
-      SLOW_ADC_AXI_CFG_G   : AxiStreamConfigType := ssiAxiStreamConfig(4)
-      );
+      SLOW_ADC_AXI_CFG_G   : AxiStreamConfigType := ssiAxiStreamConfig(4);
+      PGP_GT_TYPE_G        : string          := "GTH"; -- either "GTH" or "GTY"
+      PGP_RATE_G           : string          := "10.3125Gbps";
+      AXIL_CLK_FREQ_G      : real            := 156.25E+6 -- In units of Hz
+   );
    port (
       axilClk         : out   sl;
       axilRst         : out   sl;
@@ -129,6 +131,8 @@ architecture rtl of Core is
                                               addrBits     => 31,
                                               connectivity => x"FFFF"));
 
+   constant AXIL_CLK_PERIOD_C : real := (1.0/AXIL_CLK_FREQ_G);  -- In units of seconds
+
    signal mAxilWriteMaster : AxiLiteWriteMasterType;
    signal mAxilWriteSlave  : AxiLiteWriteSlaveType;
    signal mAxilReadMaster  : AxiLiteReadMasterType;
@@ -205,8 +209,8 @@ architecture rtl of Core is
             RST_IN_POLARITY_G => '1',
             NUM_CLOCKS_G      => 1,
             -- MMCM attributes
-            CLKIN_PERIOD_G    => 6.4,   -- 156.25 MHz
-            CLKFBOUT_MULT_G   => 8,     -- 1.25GHz = 8 x 156.25 MHz
+            CLKIN_PERIOD_G    => AXIL_CLK_PERIOD_C*1.0e+9, -- In units of ns
+            CLKFBOUT_MULT_G   => 8,     -- 1.25GHz = 8 x 156.25 MHz, TODO: These values will depend on AXIL_CLK_FREQ_G
             CLKOUT0_DIVIDE_G  => 8      -- 156.25 MHz = 1.25GHz/8
          )
          port map(
@@ -222,7 +226,7 @@ architecture rtl of Core is
       ---------------------------------------
       --          PGP Module
       ---------------------------------------
-      GEN_PGP_SLOW : if (PGP_SPEED_G = "SLOW") generate
+      GEN_PGP_GTH : if (PGP_GT_TYPE_G = "GTH") generate
          U_Pgp : entity work.PgpWrapper
             generic map (
                TPD_G              => TPD_G,
@@ -231,8 +235,10 @@ architecture rtl of Core is
                NUM_OF_SLOW_ADCS_G => NUM_OF_SLOW_ADCS_G,
                NUM_OF_PSCOPE_G    => NUM_OF_PSCOPE_G,
                NUM_OF_LANES_G     => NUM_OF_LANES_G,
-               SLOW_ADC_AXI_CFG_G => SLOW_ADC_AXI_CFG_G
-               )
+               SLOW_ADC_AXI_CFG_G => SLOW_ADC_AXI_CFG_G,
+               PGP_RATE_G         => PGP_RATE_G,
+               AXIL_CLK_FREQ_G    => AXIL_CLK_FREQ_G
+            )
             port map (
                -- Clock and Reset
                axilClk          => axilClock,
@@ -271,7 +277,7 @@ architecture rtl of Core is
             );
       end generate;
 
-      GEN_PGP_FAST : if (PGP_SPEED_G = "FAST") generate
+      GEN_PGP_GTY : if (PGP_GT_TYPE_G = "GTY") generate
          U_Pgp : entity work.GtReadoutPgpWrapper
             generic map (
                TPD_G              => TPD_G,
@@ -280,8 +286,10 @@ architecture rtl of Core is
                NUM_OF_SLOW_ADCS_G => NUM_OF_SLOW_ADCS_G,
                NUM_OF_PSCOPE_G    => NUM_OF_PSCOPE_G,
                NUM_OF_LANES_G     => NUM_OF_LANES_G,
-               SLOW_ADC_AXI_CFG_G => SLOW_ADC_AXI_CFG_G
-               )
+               SLOW_ADC_AXI_CFG_G => SLOW_ADC_AXI_CFG_G,
+               PGP_RATE_G         => PGP_RATE_G,
+               AXIL_CLK_FREQ_G    => AXIL_CLK_FREQ_G
+            )
             port map (
                -- Clock and Reset
                axilClk          => axilClock,
@@ -448,7 +456,9 @@ architecture rtl of Core is
          SIMULATION_G       => SIMULATION_G,
          BUILD_INFO_G       => BUILD_INFO_G,
          AXIL_BASE_ADDR_G   => XBAR_CONFIG_C(SYSDEV_INDEX_C).baseAddr,
-         MEMORY_INIT_FILE_G => MEMORY_INIT_FILE_G)
+         MEMORY_INIT_FILE_G => MEMORY_INIT_FILE_G,
+         AXIL_CLK_FREQ_G    => AXIL_CLK_FREQ_G
+      )
       port map(
          -- AXI-Lite Interface
          axilClk         => axilClock,

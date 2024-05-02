@@ -29,13 +29,15 @@ use work.CorePkg.all;
 
 entity GtReadoutPgpWrapper is
    generic (
-      TPD_G                   : time             := 1 ns;
-      SIMULATION_G            : boolean          := false;
-      AXIL_BASE_ADDR_G        : slv(31 downto 0) := (others => '0');
-      NUM_OF_LANES_G          : integer         := 4;
-      NUM_OF_SLOW_ADCS_G      : integer         := 4;
-      NUM_OF_PSCOPE_G         : integer        := 4;
-      SLOW_ADC_AXI_CFG_G      : AxiStreamConfigType := ssiAxiStreamConfig(4)
+      TPD_G                   : time               := 1 ns;
+      SIMULATION_G            : boolean            := false;
+      AXIL_BASE_ADDR_G        : slv(31 downto 0)   := (others => '0');
+      NUM_OF_LANES_G          : integer            := 4;
+      NUM_OF_SLOW_ADCS_G      : integer            := 4;
+      NUM_OF_PSCOPE_G         : integer            := 4;
+      SLOW_ADC_AXI_CFG_G      : AxiStreamConfigType := ssiAxiStreamConfig(4);
+      PGP_RATE_G              : string             := "10.3125Gbps";
+      AXIL_CLK_FREQ_G         : real               := 156.25E+6  -- In units of Hz
    );
    port (
       -- Clock and Reset
@@ -66,7 +68,8 @@ entity GtReadoutPgpWrapper is
       leapRxP          : in  slv(7 downto 0);
       leapRxN          : in  slv(7 downto 0);
       -- ssi commands
-      ssiCmd          : out    SsiCmdMasterType);
+      ssiCmd          : out    SsiCmdMasterType
+   );
 end GtReadoutPgpWrapper;
 
 architecture mapping of GtReadoutPgpWrapper is
@@ -146,7 +149,7 @@ begin
       U_QPLL : entity surf.Pgp3GtyUsQpll
          generic map (
             TPD_G    => TPD_G,
-            RATE_G   => FAST_PGP_RATE_C,
+            RATE_G   => PGP_RATE_G,
             EN_DRP_G => false)
          port map (
             -- Stable Clock and Reset
@@ -168,7 +171,7 @@ begin
       U_Pgp : entity surf.Pgp4GtyUs
          generic map (
             TPD_G              => TPD_G,
-            RATE_G             => FAST_PGP_RATE_C,
+            RATE_G             => PGP_RATE_G,
             NUM_VC_G           => 1,
             EN_PGP_MON_G       => true,
             WRITE_EN_G         => false,
@@ -176,7 +179,7 @@ begin
             AXIL_BASE_ADDR_G   => XBAR_CONFIG_C(i).baseAddr,
             STATUS_CNT_WIDTH_G => STATUS_CNT_WIDTH_C,
             ERROR_CNT_WIDTH_G  => ERROR_CNT_WIDTH_C,
-            AXIL_CLK_FREQ_G    => FAST_AXIL_CLK_FREQ_C)
+            AXIL_CLK_FREQ_G    => AXIL_CLK_FREQ_G)
          port map (
             -- Stable Clock and Reset
             stableClk       => axilClk,
@@ -249,7 +252,7 @@ begin
    U_Pgp_RegAccess : entity surf.Pgp4GtyUs
       generic map (
          TPD_G              => TPD_G,
-         RATE_G             => FAST_PGP_RATE_C,
+         RATE_G             => PGP_RATE_G,
          NUM_VC_G           => 3,
          EN_PGP_MON_G       => true,
          WRITE_EN_G         => false,
@@ -257,7 +260,7 @@ begin
          AXIL_BASE_ADDR_G   => XBAR_CONFIG_C(5).baseAddr,
          STATUS_CNT_WIDTH_G => STATUS_CNT_WIDTH_C,
          ERROR_CNT_WIDTH_G  => ERROR_CNT_WIDTH_C,
-         AXIL_CLK_FREQ_G    => FAST_AXIL_CLK_FREQ_C)
+         AXIL_CLK_FREQ_G    => AXIL_CLK_FREQ_G)
       port map (
          -- Stable Clock and Reset
          stableClk       => axilClk,
@@ -396,7 +399,7 @@ begin
    U_Pgp_Lane6 : entity surf.Pgp4GtyUs
       generic map (
          TPD_G              => TPD_G,
-         RATE_G             => FAST_PGP_RATE_C,
+         RATE_G             => PGP_RATE_G,
          NUM_VC_G           => NUM_OF_SLOW_ADCS_G,
          EN_PGP_MON_G       => true,
          WRITE_EN_G         => false,
@@ -404,7 +407,7 @@ begin
          AXIL_BASE_ADDR_G   => XBAR_CONFIG_C(6).baseAddr,
          STATUS_CNT_WIDTH_G => STATUS_CNT_WIDTH_C,
          ERROR_CNT_WIDTH_G  => ERROR_CNT_WIDTH_C,
-         AXIL_CLK_FREQ_G    => FAST_AXIL_CLK_FREQ_C)
+         AXIL_CLK_FREQ_G    => AXIL_CLK_FREQ_G)
       port map (
          -- Stable Clock and Reset
          stableClk       => axilClk,
@@ -467,7 +470,7 @@ begin
    U_Pgp_Lane7 : entity surf.Pgp4GtyUs
       generic map (
          TPD_G              => TPD_G,
-         RATE_G             => FAST_PGP_RATE_C,
+         RATE_G             => PGP_RATE_G,
          NUM_VC_G           => NUM_OF_PSCOPE_G,
          EN_PGP_MON_G       => true,
          WRITE_EN_G         => false,
@@ -475,7 +478,7 @@ begin
          AXIL_BASE_ADDR_G   => XBAR_CONFIG_C(7).baseAddr,
          STATUS_CNT_WIDTH_G => STATUS_CNT_WIDTH_C,
          ERROR_CNT_WIDTH_G  => ERROR_CNT_WIDTH_C,
-         AXIL_CLK_FREQ_G    => FAST_AXIL_CLK_FREQ_C)
+         AXIL_CLK_FREQ_G    => AXIL_CLK_FREQ_G)
       port map (
          -- Stable Clock and Reset
          stableClk       => axilClk,

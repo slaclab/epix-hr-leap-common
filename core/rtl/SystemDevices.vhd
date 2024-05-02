@@ -35,7 +35,9 @@ entity SystemDevices is
       SIMULATION_G     : boolean          := false;
       BUILD_INFO_G     : BuildInfoType;
       MEMORY_INIT_FILE_G : string := "none";
-      AXIL_BASE_ADDR_G : slv(31 downto 0) := (others => '0'));
+      AXIL_BASE_ADDR_G : slv(31 downto 0) := (others => '0');
+      AXIL_CLK_FREQ_G  : real             := 156.25E+6  -- In units of Hz
+   );
    port (
       -- AXI-Lite Interface
       axilClk         : in    sl;
@@ -92,6 +94,8 @@ architecture mapping of SystemDevices is
    constant NUM_AXIL_MASTERS_C : positive := 6;
 
    constant XBAR_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXIL_MASTERS_C, AXIL_BASE_ADDR_G, 20, 16);
+
+   constant AXIL_CLK_PERIOD_C : real := (1.0/AXIL_CLK_FREQ_G);  -- In units of seconds
 
    signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
    signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_SLVERR_C);
@@ -169,8 +173,8 @@ begin
       U_BootProm : entity surf.AxiMicronN25QCore
          generic map (
             TPD_G          => TPD_G,
-            AXI_CLK_FREQ_G => AXIL_CLK_FREQ_C,        -- units of Hz
-            SPI_CLK_FREQ_G => (AXIL_CLK_FREQ_C/4.0))  -- units of Hz
+            AXI_CLK_FREQ_G => AXIL_CLK_FREQ_G,        -- units of Hz
+            SPI_CLK_FREQ_G => (AXIL_CLK_FREQ_G/4.0))  -- units of Hz
          port map (
             -- FLASH Memory Ports
             csL            => bootCsL,
@@ -216,7 +220,7 @@ begin
       U_LeapXcvr : entity surf.LeapXcvr
          generic map (
             TPD_G           => TPD_G,
-            AXIL_CLK_FREQ_G => AXIL_CLK_FREQ_C)
+            AXIL_CLK_FREQ_G => AXIL_CLK_FREQ_G)
          port map (
             -- I2C Ports
             scl             => obTransScl,
@@ -258,7 +262,7 @@ begin
             TPD_G          => TPD_G,
             I2C_SCL_FREQ_G => 400.0E+3,  -- units of Hz
             DEVICE_MAP_G   => PLL_I2C_CONFIG_C,
-            AXI_CLK_FREQ_G => AXIL_CLK_FREQ_C)
+            AXI_CLK_FREQ_G => AXIL_CLK_FREQ_G)
          port map (
             -- I2C Ports
             scl            => pllClkScl,
