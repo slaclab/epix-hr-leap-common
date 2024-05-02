@@ -35,6 +35,7 @@ entity DigitalAsicStreamAxiV2 is
       LANES_NO_G           : natural := 6;
       GAIN_BIT_REMAP_G     : boolean := true; --true moves LSB to MSB
       AXIL_ERR_RESP_G      : slv(1 downto 0)  := AXI_RESP_DECERR_C;
+      AXIL_BASE_ADDR_G     : slv(31 downto 0);
       INVERT_BITS_G        : boolean := false --true subtracts (others => '1') from pixel value
    );
    port ( 
@@ -85,7 +86,19 @@ architecture RTL of DigitalAsicStreamAxiV2 is
    -- PGP3 protocol is using 128bit (check for global constant for this configuration)
    
    type StateType is (IDLE_S, WAIT_SOF_S, HDR_S, DATA_S, TIMEOUT_S, TAIL_S);
-   
+
+   type LaneRegType is record
+      axilWriteSlave              : AxiLiteWriteSlaveType;
+      axilReadSlave               : AxiLiteReadSlaveType;
+   end record;
+
+   constant LANEREG_INIT_C : LaneRegType := (
+      axilWriteSlave              => AXI_LITE_WRITE_SLAVE_INIT_C,
+      axilReadSlave               => AXI_LITE_READ_SLAVE_INIT_C
+   );
+
+   type LaneRegArrayType is array (natural range <>) of LaneRegType;
+
    type RegType is record
       state                       : StateType;
       stateD1                     : StateType;
@@ -204,9 +217,15 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       axilReadSlave               => AXI_LITE_READ_SLAVE_INIT_C
    );
    
-   signal r   : RegType := REG_INIT_C;
-   signal rin : RegType;
    
+
+   signal r   : RegType := REG_INIT_C;
+   signal rin : RegType := REG_INIT_C;
+
+   signal rLane   : LaneRegArrayType(LANES_NO_G-1 downto 0) := (others => LANEREG_INIT_C);
+   signal rinLane : LaneRegArrayType(LANES_NO_G-1 downto 0) := (others => LANEREG_INIT_C);
+
+
    signal dFifoRd       : slv(LANES_NO_G-1 downto 0);
    signal dFifoEofe     : slv(LANES_NO_G-1 downto 0);
    signal dFifoEof      : slv(LANES_NO_G-1 downto 0);
@@ -243,28 +262,59 @@ architecture RTL of DigitalAsicStreamAxiV2 is
    signal axilReadSlave    : AxiLiteReadSlaveType;
 
    signal cycleCounter     : slv(15 downto 0);
-   
-   attribute keep : string;
-   attribute keep of r           : signal is "true";
-   attribute keep of daqTriggerSync : signal is "true";
-   attribute keep of dFifoEofe   : signal is "true";
-   attribute keep of dFifoEof    : signal is "true";
-   attribute keep of dFifoSof    : signal is "true";
-   attribute keep of dFifoValid  : signal is "true";
 
-   attribute keep of empty       : signal is "true";
-   attribute keep of underflow   : signal is "true";
-   attribute keep of rdDataCount : signal is "true";
-   attribute keep of wrDataCount : signal is "true";
-   attribute keep of overflow    : signal is "true";
-   attribute keep of wrAck       : signal is "true";
-   attribute keep of notFull     : signal is "true";
-   attribute keep of DeserAxisDualClockFifoFull : signal is "true";
-   attribute keep of DeserAxisDualClockFifoWrCnt : signal is "true";
-   attribute keep of cycleCounter : signal is "true";
+   constant GENERAL_AXI_INDEX_C               : natural := 0;
+   constant LANE_BASE_AXI_INDEX_C             : natural := 1;
+   constant NUM_AXIL_MASTERS_C                : natural := LANES_NO_G + LANE_BASE_AXI_INDEX_C;
+
+
+   constant XBAR_CONFIG_C  : AxiLiteCrossbarMasterConfigArray(NUM_AXIL_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXIL_MASTERS_C, AXIL_BASE_ADDR_G, 16, 8);
+
+   signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
+   signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_SLVERR_C);
+   signal axilReadMasters  : AxiLiteReadMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
+   signal axilReadSlaves   : AxiLiteReadSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0)  := (others => AXI_LITE_READ_SLAVE_EMPTY_SLVERR_C);
+
+
+   --attribute keep : string;
+   --attribute keep of r           : signal is "true";
+   --attribute keep of daqTriggerSync : signal is "true";
+   --attribute keep of dFifoEofe   : signal is "true";
+   --attribute keep of dFifoEof    : signal is "true";
+   --attribute keep of dFifoSof    : signal is "true";
+   --attribute keep of dFifoValid  : signal is "true";
+   --attribute keep of empty       : signal is "true";
+   --attribute keep of underflow   : signal is "true";
+   --attribute keep of rdDataCount : signal is "true";
+   --attribute keep of wrDataCount : signal is "true";
+   --attribute keep of overflow    : signal is "true";
+   --attribute keep of wrAck       : signal is "true";
+   --attribute keep of notFull     : signal is "true";
+   --attribute keep of DeserAxisDualClockFifoFull : signal is "true";
+   --attribute keep of DeserAxisDualClockFifoWrCnt : signal is "true";
+   --attribute keep of cycleCounter : signal is "true";
 
 begin
    
+   U_XBAR : entity surf.AxiLiteCrossbar
+   generic map (
+      TPD_G              => TPD_G,
+      NUM_SLAVE_SLOTS_G  => 1,
+      NUM_MASTER_SLOTS_G => NUM_AXIL_MASTERS_C,
+      MASTERS_CONFIG_G   => XBAR_CONFIG_C)
+   port map (
+      sAxiWriteMasters(0) => axilWriteMaster,
+      sAxiWriteSlaves(0)  => axilWriteSlave,
+      sAxiReadMasters(0)  => axilReadMaster,
+      sAxiReadSlaves(0)   => axilReadSlave,
+      mAxiWriteMasters    => axilWriteMasters,
+      mAxiWriteSlaves     => axilWriteSlaves,
+      mAxiReadMasters     => axilReadMasters,
+      mAxiReadSlaves      => axilReadSlaves,
+      axiClk              => deserClk,
+      axiClkRst           => deserRst);
+
+      
    ----------------------------------------------------------------------------
    -- Cross clocking synchronizers
    ----------------------------------------------------------------------------
@@ -323,7 +373,7 @@ begin
    G_FIFO : for i in 0 to LANES_NO_G-1 generate
      
       -- ePixHR10k has the gian bit defined as LSB and it is remapped as MSB.
-      U_GainBitReMap : process (rxData, r)
+      U_GainBitReMap : process (rxData)
       begin
         if (GAIN_BIT_REMAP_G = true) then
             if (INVERT_BITS_G = true) then
@@ -394,9 +444,48 @@ begin
          
    end generate;
 
+   G_CROSSBAR_SPLIT : for i in LANES_NO_G-1 downto 0 generate
+      -- split registers with cross bar to close timing
+      crossbar_split : process (deserRst, rLane(i), r, axilReadMasters(LANE_BASE_AXI_INDEX_C+i), axilWriteMasters(LANE_BASE_AXI_INDEX_C+i)) is
+         variable v             : LaneRegType;
+         variable regCon        : AxiLiteEndPointType;
+         constant base          : slv(15 downto 0) := toSlv((i+1)*256, 16); -- 0x"0100" x laneNumber
+      begin
+         v := rLane(i);
 
-   comb : process (deserRst, axilReadMaster, axilWriteMaster, txSlave, r, 
-      acqNoSync, dFifoExtData, dFifoValid, dFifoSof, dFifoEof, dFifoEofe, daqTriggerSync, sroSync, rxValid, rxSof, rxEof, rxEofe, rxFull) is
+         axiSlaveWaitTxn(regCon,  axilWriteMasters(LANE_BASE_AXI_INDEX_C+i), axilReadMasters(LANE_BASE_AXI_INDEX_C+i), v.axilWriteSlave, v.axilReadSlave);
+         
+         -- offset 0x100 x i
+         axiSlaveRegisterR(regCon, x"0000"+base,  0, r.timeoutCntLane(i));
+         axiSlaveRegisterR(regCon, x"0004"+base,  0, r.dataCntLane(i));
+         axiSlaveRegisterR(regCon, x"0008"+base,  0, r.dataCntLaneReg(i));
+         axiSlaveRegisterR(regCon, x"000C"+base,  0, r.dataCntLaneMin(i));
+         axiSlaveRegisterR(regCon, x"0010"+base,  0, r.dataCntLaneMax(i));
+         axiSlaveRegisterR(regCon, x"0014"+base,  0, r.dataDlyLaneReg(i));
+         axiSlaveRegisterR(regCon, x"0018"+base,  0, r.dataOvfLane(i));
+         axiSlaveRegisterR(regCon, x"001C"+base,  0, r.fillOnFailCntLane(i));
+         axiSlaveRegisterR(regCon, x"0020"+base,  0, r.sroToSofCntrReg(i));
+
+         
+         axiSlaveDefault(regCon, v.axilWriteSlave, v.axilReadSlave, AXIL_ERR_RESP_G);
+
+         -- reset logic      
+         if (deserRst = '1') then
+            v := LANEREG_INIT_C;
+         end if;
+
+         -- outputs
+         rinLane(i) <= v;
+
+         axilWriteSlaves(LANE_BASE_AXI_INDEX_C+i) <= rLane(i).axilWriteSlave;
+         axilReadSlaves(LANE_BASE_AXI_INDEX_C+i)  <= rLane(i).axilReadSlave;
+      end process;
+   end generate;
+
+   
+   comb : process (deserRst, axilReadMasters(GENERAL_AXI_INDEX_C), axilWriteMasters(GENERAL_AXI_INDEX_C), txSlave, r, 
+      acqNoSync, dFifoExtData, dFifoValid, dFifoSof, dFifoEof, dFifoEofe, 
+      daqTriggerSync, sroSync, rxValid, rxSof, rxEof, rxEofe, rxFull) is
       variable v             : RegType;
       variable regCon        : AxiLiteEndPointType;
       variable fillOnFailEnV : slv(LANES_NO_G-1 downto 0);
@@ -412,7 +501,7 @@ begin
       v.daqTriggerSync(0) := r.daqTriggerSync(1);
       fillOnFailEnV := (others => r.fillOnFailEn);
 
-      axiSlaveWaitTxn(regCon, axilWriteMaster, axilReadMaster, v.axilWriteSlave, v.axilReadSlave);
+      axiSlaveWaitTxn(regCon, axilWriteMasters(GENERAL_AXI_INDEX_C), axilReadMasters(GENERAL_AXI_INDEX_C), v.axilWriteSlave, v.axilReadSlave);
       
       axiSlaveRegisterR(regCon, x"000",  0, r.frmCnt);
       axiSlaveRegisterR(regCon, x"004",  0, r.frmSize);
@@ -424,6 +513,7 @@ begin
       axiSlaveRegister (regCon, x"030",  0, v.enumDisLane);
       axiSlaveRegister (regCon, x"034",  0, v.gainBitRemap);
       axiSlaveRegister (regCon, x"038",  0, v.fillOnFailEn);
+      axiSlaveRegister (regCon, x"014",  0, v.fillOnFailPeristantDisable);
       axiSlaveRegister (regCon, x"03C",  0, v.fillOnFailTimeoutWaitSof);
       axiSlaveRegister (regCon, x"040",  0, v.fillOnFailTimeoutData);
       axiSlaveRegisterR(regCon, x"044",  0, r.fillOnFailCnt);
@@ -444,25 +534,9 @@ begin
       axiSlaveRegisterR(regCon, x"08C",  0, r.readyLowCyclesCtrMin);
       axiSlaveRegisterR(regCon, x"090",  0, r.readyLowCyclesCtrMax);
       axiSlaveRegisterR(regCon, x"094",  0, r.readyLowCyclesCtr);
-
       axiSlaveRegisterR(regCon, x"098",  0, r.trigToSroCntrMin);
       axiSlaveRegisterR(regCon, x"09C",  0, r.trigToSroCntrMax);
       axiSlaveRegisterR(regCon, x"010",  0, r.trigToSroCntr);
-      axiSlaveRegister (regCon, x"014",  0, v.fillOnFailPeristantDisable);
-
-
-      for i in 0 to (LANES_NO_G-1) loop
-         axiSlaveRegisterR(regCon, x"100"+toSlv(i*4,12),  0, r.timeoutCntLane(i));
-         axiSlaveRegisterR(regCon, x"200"+toSlv(i*4,12),  0, r.dataCntLane(i));
-         axiSlaveRegisterR(regCon, x"300"+toSlv(i*4,12),  0, r.dataCntLaneReg(i));
-         axiSlaveRegisterR(regCon, x"400"+toSlv(i*4,12),  0, r.dataCntLaneMin(i));
-         axiSlaveRegisterR(regCon, x"500"+toSlv(i*4,12),  0, r.dataCntLaneMax(i));
-         axiSlaveRegisterR(regCon, x"600"+toSlv(i*4,12),  0, r.dataDlyLaneReg(i));
-         axiSlaveRegisterR(regCon, x"700"+toSlv(i*4,12),  0, r.dataOvfLane(i));
-         axiSlaveRegisterR(regCon, x"800"+toSlv(i*4,12),  0, r.fillOnFailCntLane(i));
-         axiSlaveRegisterR(regCon, x"900"+toSlv(i*4,12),  0, r.sroToSofCntrReg(i));
-         
-      end loop;
       
       axiSlaveDefault(regCon, v.axilWriteSlave, v.axilReadSlave, AXIL_ERR_RESP_G);
       
@@ -848,16 +922,20 @@ begin
       
       rin <= v;
 
-      axilWriteSlave <= r.axilWriteSlave;
-      axilReadSlave  <= r.axilReadSlave;
-      dFifoRd        <= v.dFifoRd;
+      axilWriteSlaves(GENERAL_AXI_INDEX_C) <= r.axilWriteSlave;
+      axilReadSlaves(GENERAL_AXI_INDEX_C)  <= r.axilReadSlave;
+      dFifoRd                              <= v.dFifoRd;
 
    end process comb;
 
    seq : process (deserClk) is
    begin
       if (rising_edge(deserClk)) then
-         r <= rin after TPD_G;
+         r <= rin after TPD_G;             
+         for i in 0 to (LANES_NO_G-1) loop
+            rLane(i) <= rinLane(i) after TPD_G;             
+         end loop;         
+        
       end if;
    end process seq;
    
