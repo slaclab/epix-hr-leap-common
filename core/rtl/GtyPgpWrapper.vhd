@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 -- Company    : SLAC National Accelerator Laboratory
 -------------------------------------------------------------------------------
--- Description: PGP Wrapper
+-- Description: PGP Wrapper for GTY transceivers
 -------------------------------------------------------------------------------
 -- This file is part of 'Simple-PGPv4-KCU105-Example'.
 -- It is subject to the license terms in the LICENSE.txt file found in the
@@ -27,14 +27,14 @@ use surf.SsiCmdMasterPkg.all;
 library work;
 use work.CorePkg.all;
 
-entity PgpWrapper is
+entity GtyPgpWrapper is
    generic (
-      TPD_G                   : time             := 1 ns;
-      SIMULATION_G            : boolean          := false;
-      AXIL_BASE_ADDR_G        : slv(31 downto 0) := (others => '0');
-      NUM_OF_LANES_G          : integer         := 4;
-      NUM_OF_SLOW_ADCS_G      : integer         := 4;
-      NUM_OF_PSCOPE_G         : integer        := 4;
+      TPD_G                   : time               := 1 ns;
+      SIMULATION_G            : boolean            := false;
+      AXIL_BASE_ADDR_G        : slv(31 downto 0)   := (others => '0');
+      NUM_OF_LANES_G          : integer            := 4;
+      NUM_OF_SLOW_ADCS_G      : integer            := 4;
+      NUM_OF_PSCOPE_G         : integer            := 4;
       SLOW_ADC_AXI_CFG_G      : AxiStreamConfigType := ssiAxiStreamConfig(4);
       PGP_RATE_G              : string             := "10.3125Gbps";
       AXIL_CLK_FREQ_G         : real               := 156.25E+6  -- In units of Hz
@@ -68,10 +68,11 @@ entity PgpWrapper is
       leapRxP          : in  slv(7 downto 0);
       leapRxN          : in  slv(7 downto 0);
       -- ssi commands
-      ssiCmd          : out    SsiCmdMasterType);
-end PgpWrapper;
+      ssiCmd          : out    SsiCmdMasterType
+   );
+end GtyPgpWrapper;
 
-architecture mapping of PgpWrapper is
+architecture mapping of GtyPgpWrapper is
 
    constant STATUS_CNT_WIDTH_C : positive := 12;
    constant ERROR_CNT_WIDTH_C  : positive := 8;
@@ -144,7 +145,8 @@ begin
 
    GEN_QPLL :
    for i in 1 downto 0 generate
-      U_QPLL : entity surf.Pgp3GthUsQpll  -- Same IP core for both PGPv3 and PGPv4
+      -- Same IP core for both PGPv3 and PGPv4
+      U_QPLL : entity surf.Pgp3GtyUsQpll
          generic map (
             TPD_G    => TPD_G,
             RATE_G   => PGP_RATE_G,
@@ -166,7 +168,7 @@ begin
    GEN_PGP_DATA :
    for i in NUM_OF_LANES_G - 1 downto 0 generate
 
-      U_Pgp : entity surf.Pgp4GthUs
+      U_Pgp : entity surf.Pgp4GtyUs
          generic map (
             TPD_G              => TPD_G,
             RATE_G             => PGP_RATE_G,
@@ -247,7 +249,7 @@ begin
 
    end generate GEN_PGP_DATA;
 
-   U_Pgp_RegAccess : entity surf.Pgp4GthUs
+   U_Pgp_RegAccess : entity surf.Pgp4GtyUs
       generic map (
          TPD_G              => TPD_G,
          RATE_G             => PGP_RATE_G,
@@ -394,7 +396,7 @@ begin
          pgpTxMaster => pgpTxMasters(2),
          pgpTxSlave  => pgpTxSlaves(2));
 
-   U_Pgp_Lane6 : entity surf.Pgp4GthUs
+   U_Pgp_Lane6 : entity surf.Pgp4GtyUs
       generic map (
          TPD_G              => TPD_G,
          RATE_G             => PGP_RATE_G,
@@ -465,7 +467,7 @@ begin
             pgpTxSlave  => slowMonTxSlaves(i));
    end generate GEN_PGP_LANE6;
 
-   U_Pgp_Lane7 : entity surf.Pgp4GthUs
+   U_Pgp_Lane7 : entity surf.Pgp4GtyUs
       generic map (
          TPD_G              => TPD_G,
          RATE_G             => PGP_RATE_G,

@@ -227,7 +227,7 @@ architecture rtl of Core is
       --          PGP Module
       ---------------------------------------
       GEN_PGP_GTH : if (PGP_GT_TYPE_G = "GTH") generate
-         U_Pgp : entity work.PgpWrapper
+         U_Pgp : entity work.GthPgpWrapper
             generic map (
                TPD_G              => TPD_G,
                SIMULATION_G       => SIMULATION_G,
@@ -278,7 +278,7 @@ architecture rtl of Core is
       end generate;
 
       GEN_PGP_GTY : if (PGP_GT_TYPE_G = "GTY") generate
-         U_Pgp : entity work.GtReadoutPgpWrapper
+         U_Pgp : entity work.GtyPgpWrapper
             generic map (
                TPD_G              => TPD_G,
                SIMULATION_G       => SIMULATION_G,
