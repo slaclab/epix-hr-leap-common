@@ -143,8 +143,7 @@ begin
          mAxiReadMasters     => axilReadMasters,
          mAxiReadSlaves      => axilReadSlaves);
 
-   GEN_QPLL :
-   for i in 1 downto 0 generate
+   GEN_QPLL : for i in 1 downto 0 generate
       -- Same IP core for both PGPv3 and PGPv4
       U_QPLL : entity surf.Pgp3GtyUsQpll
          generic map (
@@ -165,9 +164,11 @@ begin
             axilRst    => axilRst);
    end generate GEN_QPLL;
 
-   GEN_PGP_DATA :
-   for i in NUM_OF_LANES_G - 1 downto 0 generate
-
+   ----------------------------------------------
+   -- PGP lanes for ASIC data
+   -- Note that NUM_OF_LANES_G must be <= 5
+   ----------------------------------------------
+   GEN_PGP_DATA : for i in NUM_OF_LANES_G - 1 downto 0 generate
       U_Pgp : entity surf.Pgp4GtyUs
          generic map (
             TPD_G              => TPD_G,
@@ -246,9 +247,11 @@ begin
 
       -- On the PCIe card, remLinkData[0] is mapped to the large DDR/HBM memory buffer's pause
       removePauseVec(i) <= pgpRxOut(i).remLinkData(0) or not(pgpRxOut(i).linkReady) or not(pgpTxOut(i).linkReady);
-
    end generate GEN_PGP_DATA;
 
+   ----------------------------------------------
+   -- PGP lane 5 for register access and XVC
+   ----------------------------------------------
    U_Pgp_RegAccess : entity surf.Pgp4GtyUs
       generic map (
          TPD_G              => TPD_G,
@@ -396,6 +399,9 @@ begin
          pgpTxMaster => pgpTxMasters(2),
          pgpTxSlave  => pgpTxSlaves(2));
 
+   ----------------------------------------------
+   -- PGP lane 6 for ADC
+   ----------------------------------------------
    U_Pgp_Lane6 : entity surf.Pgp4GtyUs
       generic map (
          TPD_G              => TPD_G,
@@ -445,8 +451,7 @@ begin
          axilWriteMaster => axilWriteMasters(6),
          axilWriteSlave  => axilWriteSlaves(6));
 
-   GEN_PGP_LANE6 :
-   for i in NUM_OF_SLOW_ADCS_G - 1 downto 0 generate
+   GEN_PGP_LANE6 : for i in NUM_OF_SLOW_ADCS_G - 1 downto 0 generate
       U_TX_FIFO : entity surf.PgpTxVcFifo
          generic map (
             TPD_G            => TPD_G,
@@ -467,6 +472,9 @@ begin
             pgpTxSlave  => slowMonTxSlaves(i));
    end generate GEN_PGP_LANE6;
 
+   ----------------------------------------------
+   -- PGP lane 7 for scopes
+   ----------------------------------------------
    U_Pgp_Lane7 : entity surf.Pgp4GtyUs
       generic map (
          TPD_G              => TPD_G,
@@ -516,8 +524,7 @@ begin
          axilWriteMaster => axilWriteMasters(7),
          axilWriteSlave  => axilWriteSlaves(7));
 
-   GEN_PGP_LANE7 :
-   for i in NUM_OF_PSCOPE_G - 1 downto 0 generate
+   GEN_PGP_LANE7 : for i in NUM_OF_PSCOPE_G - 1 downto 0 generate
       U_TX_FIFO : entity surf.PgpTxVcFifo
          generic map (
             TPD_G            => TPD_G,

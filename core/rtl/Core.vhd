@@ -356,8 +356,7 @@ architecture rtl of Core is
             axilWriteSlave  => mAxilWriteSlave
          );
 
-      GEN_VEC :
-      for i in NUM_OF_LANES_G - 1 downto 0 generate
+      GEN_VEC : for i in NUM_OF_LANES_G - 1 downto 0 generate
          U_asicData : entity surf.RogueTcpStreamWrap
             generic map (
                TPD_G         => TPD_G,
@@ -389,8 +388,7 @@ architecture rtl of Core is
          mAxisSlave  => ssiCmdSlave
       );
 
-      GEN_SLOW_ADC_VEC :
-      for i in NUM_OF_SLOW_ADCS_G - 1 downto 0 generate
+      GEN_SLOW_ADC_VEC : for i in NUM_OF_SLOW_ADCS_G - 1 downto 0 generate
          U_slowAdcData : entity surf.RogueTcpStreamWrap
             generic map (
                TPD_G         => TPD_G,
