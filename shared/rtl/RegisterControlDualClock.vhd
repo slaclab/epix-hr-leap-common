@@ -324,7 +324,6 @@ begin
       axiSlaveRegister(regCon,  x"0258",  0, v.boardRegOut.epixhrDbgSel1);
       axiSlaveRegister(regCon,  x"025C",  0, v.boardRegOut.epixhrDbgSel2);
       axiSlaveRegister(regCon,  x"0260",  0, v.boardRegOut.epixhrDbgSel3);
-      axiSlaveRegister(regCon,  x"0264",  1, v.boardRegOut.getSN);
       axiSlaveRegisterR(regCon, x"0268",  0, r.asicRefClockFreq);
       axiSlaveRegisterR(regCon, x"026C",  3, v.v1LinkUp);
       axiSlaveRegisterR(regCon, x"026C",  4, v.v2LinkUp);
@@ -738,7 +737,7 @@ begin
 
    -- Special reset to the DS2411 to re-read in the event of a start up request event
    -- Start up (picoblaze) is disabling the ASIC digital monitors to ensure proper carrier ID readout
-   adcCardStartUp <= r.boardRegOut.getSN or pwrGoodUpEdge;
+   adcCardStartUp <= pwrGoodUpEdge;
    U_adcCardStartUpRisingEdge : entity surf.SynchronizerEdge
    generic map (
       TPD_G       => TPD_G)
