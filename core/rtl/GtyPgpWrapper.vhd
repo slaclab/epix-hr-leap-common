@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 -- Company    : SLAC National Accelerator Laboratory
 -------------------------------------------------------------------------------
--- Description: PGP Wrapper for the GT Readout Platform
+-- Description: PGP Wrapper for GTY transceivers
 -------------------------------------------------------------------------------
 -- This file is part of 'Simple-PGPv4-KCU105-Example'.
 -- It is subject to the license terms in the LICENSE.txt file found in the
@@ -27,15 +27,17 @@ use surf.SsiCmdMasterPkg.all;
 library work;
 use work.CorePkg.all;
 
-entity GtReadoutPgpWrapper is
+entity GtyPgpWrapper is
    generic (
-      TPD_G                   : time             := 1 ns;
-      SIMULATION_G            : boolean          := false;
-      AXIL_BASE_ADDR_G        : slv(31 downto 0) := (others => '0');
-      NUM_OF_LANES_G          : integer         := 4;
-      NUM_OF_SLOW_ADCS_G      : integer         := 4;
-      NUM_OF_PSCOPE_G         : integer        := 4;
-      SLOW_ADC_AXI_CFG_G      : AxiStreamConfigType := ssiAxiStreamConfig(4)
+      TPD_G                   : time               := 1 ns;
+      SIMULATION_G            : boolean            := false;
+      AXIL_BASE_ADDR_G        : slv(31 downto 0)   := (others => '0');
+      NUM_OF_LANES_G          : integer            := 4;
+      NUM_OF_SLOW_ADCS_G      : integer            := 4;
+      NUM_OF_PSCOPE_G         : integer            := 4;
+      SLOW_ADC_AXI_CFG_G      : AxiStreamConfigType := ssiAxiStreamConfig(4);
+      PGP_RATE_G              : string             := "10.3125Gbps";
+      AXIL_CLK_FREQ_G         : real               := 156.25E+6  -- In units of Hz
    );
    port (
       -- Clock and Reset
@@ -66,10 +68,11 @@ entity GtReadoutPgpWrapper is
       leapRxP          : in  slv(7 downto 0);
       leapRxN          : in  slv(7 downto 0);
       -- ssi commands
-      ssiCmd          : out    SsiCmdMasterType);
-end GtReadoutPgpWrapper;
+      ssiCmd          : out    SsiCmdMasterType
+   );
+end GtyPgpWrapper;
 
-architecture mapping of GtReadoutPgpWrapper is
+architecture mapping of GtyPgpWrapper is
 
    constant STATUS_CNT_WIDTH_C : positive := 12;
    constant ERROR_CNT_WIDTH_C  : positive := 8;
@@ -140,13 +143,12 @@ begin
          mAxiReadMasters     => axilReadMasters,
          mAxiReadSlaves      => axilReadSlaves);
 
-   GEN_QPLL :
-   for i in 1 downto 0 generate
+   GEN_QPLL : for i in 1 downto 0 generate
       -- Same IP core for both PGPv3 and PGPv4
       U_QPLL : entity surf.Pgp3GtyUsQpll
          generic map (
             TPD_G    => TPD_G,
-            RATE_G   => FAST_PGP_RATE_C,
+            RATE_G   => PGP_RATE_G,
             EN_DRP_G => false)
          port map (
             -- Stable Clock and Reset
@@ -162,13 +164,15 @@ begin
             axilRst    => axilRst);
    end generate GEN_QPLL;
 
-   GEN_PGP_DATA :
-   for i in NUM_OF_LANES_G - 1 downto 0 generate
-
+   ----------------------------------------------
+   -- PGP lanes for ASIC data
+   -- Note that NUM_OF_LANES_G must be <= 5
+   ----------------------------------------------
+   GEN_PGP_DATA : for i in NUM_OF_LANES_G - 1 downto 0 generate
       U_Pgp : entity surf.Pgp4GtyUs
          generic map (
             TPD_G              => TPD_G,
-            RATE_G             => FAST_PGP_RATE_C,
+            RATE_G             => PGP_RATE_G,
             NUM_VC_G           => 1,
             EN_PGP_MON_G       => true,
             WRITE_EN_G         => false,
@@ -176,7 +180,7 @@ begin
             AXIL_BASE_ADDR_G   => XBAR_CONFIG_C(i).baseAddr,
             STATUS_CNT_WIDTH_G => STATUS_CNT_WIDTH_C,
             ERROR_CNT_WIDTH_G  => ERROR_CNT_WIDTH_C,
-            AXIL_CLK_FREQ_G    => FAST_AXIL_CLK_FREQ_C)
+            AXIL_CLK_FREQ_G    => AXIL_CLK_FREQ_G)
          port map (
             -- Stable Clock and Reset
             stableClk       => axilClk,
@@ -243,13 +247,15 @@ begin
 
       -- On the PCIe card, remLinkData[0] is mapped to the large DDR/HBM memory buffer's pause
       removePauseVec(i) <= pgpRxOut(i).remLinkData(0) or not(pgpRxOut(i).linkReady) or not(pgpTxOut(i).linkReady);
-
    end generate GEN_PGP_DATA;
 
+   ----------------------------------------------
+   -- PGP lane 5 for register access and XVC
+   ----------------------------------------------
    U_Pgp_RegAccess : entity surf.Pgp4GtyUs
       generic map (
          TPD_G              => TPD_G,
-         RATE_G             => FAST_PGP_RATE_C,
+         RATE_G             => PGP_RATE_G,
          NUM_VC_G           => 3,
          EN_PGP_MON_G       => true,
          WRITE_EN_G         => false,
@@ -257,7 +263,7 @@ begin
          AXIL_BASE_ADDR_G   => XBAR_CONFIG_C(5).baseAddr,
          STATUS_CNT_WIDTH_G => STATUS_CNT_WIDTH_C,
          ERROR_CNT_WIDTH_G  => ERROR_CNT_WIDTH_C,
-         AXIL_CLK_FREQ_G    => FAST_AXIL_CLK_FREQ_C)
+         AXIL_CLK_FREQ_G    => AXIL_CLK_FREQ_G)
       port map (
          -- Stable Clock and Reset
          stableClk       => axilClk,
@@ -393,10 +399,13 @@ begin
          pgpTxMaster => pgpTxMasters(2),
          pgpTxSlave  => pgpTxSlaves(2));
 
+   ----------------------------------------------
+   -- PGP lane 6 for ADC
+   ----------------------------------------------
    U_Pgp_Lane6 : entity surf.Pgp4GtyUs
       generic map (
          TPD_G              => TPD_G,
-         RATE_G             => FAST_PGP_RATE_C,
+         RATE_G             => PGP_RATE_G,
          NUM_VC_G           => NUM_OF_SLOW_ADCS_G,
          EN_PGP_MON_G       => true,
          WRITE_EN_G         => false,
@@ -404,7 +413,7 @@ begin
          AXIL_BASE_ADDR_G   => XBAR_CONFIG_C(6).baseAddr,
          STATUS_CNT_WIDTH_G => STATUS_CNT_WIDTH_C,
          ERROR_CNT_WIDTH_G  => ERROR_CNT_WIDTH_C,
-         AXIL_CLK_FREQ_G    => FAST_AXIL_CLK_FREQ_C)
+         AXIL_CLK_FREQ_G    => AXIL_CLK_FREQ_G)
       port map (
          -- Stable Clock and Reset
          stableClk       => axilClk,
@@ -442,8 +451,7 @@ begin
          axilWriteMaster => axilWriteMasters(6),
          axilWriteSlave  => axilWriteSlaves(6));
 
-   GEN_PGP_LANE6 :
-   for i in NUM_OF_SLOW_ADCS_G - 1 downto 0 generate
+   GEN_PGP_LANE6 : for i in NUM_OF_SLOW_ADCS_G - 1 downto 0 generate
       U_TX_FIFO : entity surf.PgpTxVcFifo
          generic map (
             TPD_G            => TPD_G,
@@ -464,10 +472,13 @@ begin
             pgpTxSlave  => slowMonTxSlaves(i));
    end generate GEN_PGP_LANE6;
 
+   ----------------------------------------------
+   -- PGP lane 7 for scopes
+   ----------------------------------------------
    U_Pgp_Lane7 : entity surf.Pgp4GtyUs
       generic map (
          TPD_G              => TPD_G,
-         RATE_G             => FAST_PGP_RATE_C,
+         RATE_G             => PGP_RATE_G,
          NUM_VC_G           => NUM_OF_PSCOPE_G,
          EN_PGP_MON_G       => true,
          WRITE_EN_G         => false,
@@ -475,7 +486,7 @@ begin
          AXIL_BASE_ADDR_G   => XBAR_CONFIG_C(7).baseAddr,
          STATUS_CNT_WIDTH_G => STATUS_CNT_WIDTH_C,
          ERROR_CNT_WIDTH_G  => ERROR_CNT_WIDTH_C,
-         AXIL_CLK_FREQ_G    => FAST_AXIL_CLK_FREQ_C)
+         AXIL_CLK_FREQ_G    => AXIL_CLK_FREQ_G)
       port map (
          -- Stable Clock and Reset
          stableClk       => axilClk,
@@ -513,8 +524,7 @@ begin
          axilWriteMaster => axilWriteMasters(7),
          axilWriteSlave  => axilWriteSlaves(7));
 
-   GEN_PGP_LANE7 :
-   for i in NUM_OF_PSCOPE_G - 1 downto 0 generate
+   GEN_PGP_LANE7 : for i in NUM_OF_PSCOPE_G - 1 downto 0 generate
       U_TX_FIFO : entity surf.PgpTxVcFifo
          generic map (
             TPD_G            => TPD_G,
