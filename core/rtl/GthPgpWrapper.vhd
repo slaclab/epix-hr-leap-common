@@ -29,15 +29,15 @@ use work.CorePkg.all;
 
 entity GthPgpWrapper is
    generic (
-      TPD_G                   : time             := 1 ns;
-      SIMULATION_G            : boolean          := false;
-      AXIL_BASE_ADDR_G        : slv(31 downto 0) := (others => '0');
-      NUM_OF_LANES_G          : integer         := 4;
-      NUM_OF_SLOW_ADCS_G      : integer         := 4;
-      NUM_OF_PSCOPE_G         : integer        := 4;
+      TPD_G                   : time                := 1 ns;
+      SIMULATION_G            : boolean             := false;
+      AXIL_BASE_ADDR_G        : slv(31 downto 0)    := (others => '0');
+      NUM_OF_LANES_G          : integer             := 4;
+      NUM_OF_SLOW_ADCS_G      : integer             := 4;
+      NUM_OF_PSCOPE_G         : integer             := 4;
       SLOW_ADC_AXI_CFG_G      : AxiStreamConfigType := ssiAxiStreamConfig(4);
-      PGP_RATE_G              : string             := "10.3125Gbps";
-      AXIL_CLK_FREQ_G         : real               := 156.25E+6  -- In units of Hz
+      PGP_RATE_G              : string              := "10.3125Gbps";
+      AXIL_CLK_FREQ_G         : real                := 156.25E+6  -- In units of Hz
    );
    port (
       -- Clock and Reset

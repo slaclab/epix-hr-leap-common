@@ -269,7 +269,6 @@ architecture rtl of Core is
                leapTxN          => fpgaOutObTransInM,
                leapRxP          => fpgaInObTransOutP,
                leapRxN          => fpgaInObTransOutM,
-
                -- Backend PCIe DAQ trigger pause for XPM (refer to TimingRx.vhd)
                pcieDaqTrigPause => pcieDaqTrigPause,
                -- SW trigger
@@ -310,7 +309,6 @@ architecture rtl of Core is
                -- Streaming Interfaces
                asicDataMasters  => asicDataMasters,
                asicDataSlaves   => asicDataSlaves,
-               remoteDmaPause   => remoteDmaPause,
                oscopeMasters    => oscopeMasters,
                oscopeSlaves     => oscopeSlaves,
                slowAdcMasters   => slowAdcMasters,
@@ -322,7 +320,8 @@ architecture rtl of Core is
                leapTxN          => fpgaOutObTransInM,
                leapRxP          => fpgaInObTransOutP,
                leapRxN          => fpgaInObTransOutM,
-
+               -- Backend PCIe DAQ trigger pause for XPM (refer to TimingRx.vhd)
+               pcieDaqTrigPause => pcieDaqTrigPause,
                -- SW trigger
                ssiCmd           => ssiCmd
             );
