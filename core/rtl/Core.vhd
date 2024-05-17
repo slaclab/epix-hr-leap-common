@@ -46,8 +46,9 @@ entity Core is
       AXIL_CLK_FREQ_G      : real            := 156.25E+6 -- In units of Hz
    );
    port (
-      axilClk         : out   sl;
-      axilRst         : out   sl;
+      axilClk          : out   sl;
+      axilRst          : out   sl;
+      pcieDaqTrigPause : out   sl;
       --------------------------------------------
       --          Top Level Ports 
       --------------------------------------------
@@ -60,7 +61,6 @@ entity Core is
       -- Streaming Interfaces (axilClk domain)
       asicDataMasters : in    AxiStreamMasterArray(NUM_OF_LANES_G - 1 downto 0);
       asicDataSlaves  : out   AxiStreamSlaveArray(NUM_OF_LANES_G - 1 downto 0);
-      remoteDmaPause  : out   slv(NUM_OF_LANES_G - 1 downto 0);
       oscopeMasters   : in    AxiStreamMasterArray( NUM_OF_PSCOPE_G - 1 downto 0);
       oscopeSlaves    : out   AxiStreamSlaveArray( NUM_OF_PSCOPE_G - 1 downto 0);
       slowAdcMasters  : in    AxiStreamMasterArray( NUM_OF_SLOW_ADCS_G - 1 downto 0);
@@ -259,12 +259,10 @@ architecture rtl of Core is
                -- Streaming Interfaces
                asicDataMasters  => asicDataMasters,
                asicDataSlaves   => asicDataSlaves,
-               remoteDmaPause   => remoteDmaPause,
                oscopeMasters    => oscopeMasters,
                oscopeSlaves     => oscopeSlaves,
                slowAdcMasters   => slowAdcMasters,
                slowAdcSlaves    => slowAdcSlaves,
-
                -- LEAP Transceiver Ports
                gtRefClk         => gtRefClk,
                leapTxP          => fpgaOutObTransInP,
@@ -272,6 +270,8 @@ architecture rtl of Core is
                leapRxP          => fpgaInObTransOutP,
                leapRxN          => fpgaInObTransOutM,
 
+               -- Backend PCIe DAQ trigger pause for XPM (refer to TimingRx.vhd)
+               pcieDaqTrigPause => pcieDaqTrigPause,
                -- SW trigger
                ssiCmd           => ssiCmd
             );
@@ -327,7 +327,6 @@ architecture rtl of Core is
                ssiCmd           => ssiCmd
             );
       end generate;
-
    end generate;
 
    GEN_ROGUE_TCP : if (SIMULATION_G = true) generate
