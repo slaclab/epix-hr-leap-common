@@ -311,7 +311,10 @@ begin
       generic map (
          TPD_G               => TPD_G,
          GEN_SYNC_FIFO_G     => false,
-         AXI_STREAM_CONFIG_G => PGP4_AXIS_CONFIG_C)
+         AXI_STREAM_CONFIG_G => PGP4_AXIS_CONFIG_C,
+         FIFO_ADDR_WIDTH_G   => 12,
+         FIFO_PAUSE_THRESH_G => 511
+         )
       port map (
          -- Streaming Slave (Rx) Interface (sAxisClk domain)
          sAxisClk         => pgpClk(5),
@@ -353,7 +356,8 @@ begin
          TPD_G            => TPD_G,
          GEN_SYNC_FIFO_G  => true,      -- same clock domain
          PHY_AXI_CONFIG_G => PGP4_AXIS_CONFIG_C,
-         APP_AXI_CONFIG_G => EMAC_AXIS_CONFIG_C)
+         APP_AXI_CONFIG_G => EMAC_AXIS_CONFIG_C
+         )
       port map (
          -- PGP Interface (pgpClk domain)
          pgpClk      => pgpClk(5),
