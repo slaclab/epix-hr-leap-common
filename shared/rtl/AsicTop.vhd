@@ -103,7 +103,6 @@ entity AsicTop is
       -- Streaming Interfaces (axilClk domain)
       asicDataMasters    : out AxiStreamMasterArray(NUM_LANES_G - 1 downto 0);
       asicDataSlaves     : in  AxiStreamSlaveArray(NUM_LANES_G - 1 downto 0);
-      remoteDmaPause     : in  slv(NUM_LANES_G - 1 downto 0);
 
       ----------------------------------------
       --          Top Level Ports           --
