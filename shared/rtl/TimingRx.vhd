@@ -44,7 +44,6 @@ entity TimingRx is
       triggerClk           : in  sl;
       triggerRst           : in  sl;
       triggerData          : out TriggerEventDataArray(NUM_EVENT_CHANNELS_G - 1 downto 0);
-      triggerUseMiniTpg    : out sl;
       -- L1 trigger feedback (optional)
       l1Clk                : in  sl                    := '0';
       l1Rst                : in  sl                    := '0';
@@ -289,14 +288,6 @@ begin
          clk     => rxUsrClk,
          dataIn  => useMiniTpg,
          dataOut => useMiniTpgSync);
-
-   U_triggerUseMiniTpg : entity surf.Synchronizer
-      generic map (
-         TPD_G => TPD_G)
-      port map (
-         clk     => triggerClk,
-         dataIn  => useMiniTpg,
-         dataOut => triggerUseMiniTpg);
 
    -------------
    -- GTH Module
