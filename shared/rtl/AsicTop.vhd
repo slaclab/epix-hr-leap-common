@@ -51,6 +51,7 @@ entity AsicTop is
       INVERT_BITS_G           : boolean := false
    );
    port (
+
       -- Clocking ports
       sysClk      : in sl;
       sysRst      : in sl;
@@ -213,17 +214,10 @@ begin
    oscopeAcqStart   <= (others => acqStartSig);
    oscopeTrigBus    <= (others => acqStartSig);
    slowAdcAcqStart  <= (others => acqStartSig);
-   boardConfig      <= boardConfigSig;
-
-   -----------------
-   -- [0] RunTrigger
-   -----------------
    timingRunTrigger <= triggerData(0).valid and triggerData(0).l0Accept;
-
-   --------------------------------------------------------
-   -- [1] DaqTrigger: DaqTrigger only undergo back pressure
-   --------------------------------------------------------
    timingDaqTrigger <= triggerData(1).valid and triggerData(1).l0Accept;
+
+   boardConfig      <= boardConfigSig;
 
   U_ASIC_XBAR : entity surf.AxiLiteCrossbar
   generic map (
