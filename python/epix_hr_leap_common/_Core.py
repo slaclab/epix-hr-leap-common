@@ -20,9 +20,10 @@ import surf.xilinx           as xil
 
 class Core(pr.Device):
     def __init__( self,
-            sim      = False,
-            promProg = False,
-            pgpLaneVc = [1,1,1,1],
+            sim         = False,
+            promProg    = False,
+            pgpLaneVc   = [1,1,1,1],
+            leapWriteEn = False,
         **kwargs):
         super().__init__(**kwargs)
 
@@ -44,7 +45,7 @@ class Core(pr.Device):
 
         self.add(amphenol.LeapXcvr(
             offset  = 0x0003_0000,
-            writeEn = False,
+            writeEn = leapWriteEn,
             enabled = False,
             # if not all lanes are up, this module causes and exception
             #enabled = not sim and not promProg,
