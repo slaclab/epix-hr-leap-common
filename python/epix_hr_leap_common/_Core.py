@@ -52,14 +52,27 @@ class Core(pr.Device):
         ))
 
         self.add(silabs.Si5345(
-            name = "Si5345Pll",
+            name = "Si5345PllB",
             offset  = 0x0004_0000,
             enabled = not sim and not promProg,
         ))
 
         self.add(ti.Lmk61e2(
+            name = "Lmk61e2B",
             offset  = 0x0005_0000,
             enabled = False,
+        ))
+
+        self.add(silabs.Si5345(
+            name = "Si5345PllA",
+            offset  = 0x0006_0000,
+            enabled = not sim and not promProg,
+        ))
+
+        self.add(ti.Lmk61e2(
+            name = "Lmk61e2A",
+            offset  = 0x0007_0000,
+            enabled = True,
         ))
 
         for lane,vc in enumerate(pgpLaneVc):

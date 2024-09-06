@@ -50,19 +50,32 @@ entity SystemDevices is
       --          Top Level Ports
       --------------------------------------
       -- Jitter Cleaner PLL Ports
-      jitclnrCsL     : out   sl;
-      jitclnrIntr    : in    sl;
-      jitclnrLolL    : in    sl;
-      jitclnrOeL     : out   sl             := '0';
-      jitclnrRstL    : out   sl             := '1';
-      jitclnrSclk    : out   sl;
-      jitclnrSdio    : out   sl;
-      jitclnrSdo     : in    sl;
-      jitclnrSel     : out slv(1 downto 0) := "00";
+      jitclnrACsL     : out   sl;
+      jitclnrAIntr    : in    sl;
+      jitclnrALolL    : in    sl;
+      jitclnrAOeL     : out   sl             := '0';
+      jitclnrARstL    : out   sl             := '1';
+      jitclnrASclk    : out   sl;
+      jitclnrASdio    : out   sl;
+      jitclnrASdo     : in    sl;
+      jitclnrASel     : out slv(1 downto 0) := "00";
+
+      jitclnrBCsL     : out   sl;
+      jitclnrBIntr    : in    sl;
+      jitclnrBLolL    : in    sl;
+      jitclnrBOeL     : out   sl             := '0';
+      jitclnrBRstL    : out   sl             := '1';
+      jitclnrBSclk    : out   sl;
+      jitclnrBSdio    : out   sl;
+      jitclnrBSdo     : in    sl;
+      jitclnrBSel     : out slv(1 downto 0) := "00";
 
       -- LMK61E2
-      pllClkScl       : inout sl;
-      pllClkSda       : inout sl;
+      pllClkAScl       : inout sl;
+      pllClkASda       : inout sl;
+
+      pllClkBScl       : inout sl;
+      pllClkBSda       : inout sl;
 
       -- LEAP Transceiver Ports
       obTransScl     : inout  sl;
@@ -77,7 +90,15 @@ end SystemDevices;
 
 architecture mapping of SystemDevices is
 
-   constant PLL_I2C_CONFIG_C : I2cAxiLiteDevArray(0 downto 0) := (
+   constant LMK61E2_A_CONFIG_C : I2cAxiLiteDevArray(0 downto 0) := (
+         0           => MakeI2cAxiLiteDevType(
+         i2cAddress  => "1011000",      -- LMK61E2
+         dataSize    => 8,              -- in units of bits
+         addrSize    => 8,              -- in units of bits
+         endianness  => '0',            -- Little endian
+         repeatStart => '1'));          -- Repeat Start
+
+   constant LMK61E2_B_CONFIG_C : I2cAxiLiteDevArray(0 downto 0) := (
          0           => MakeI2cAxiLiteDevType(
          i2cAddress  => "1011000",      -- LMK61E2
          dataSize    => 8,              -- in units of bits
@@ -89,9 +110,11 @@ architecture mapping of SystemDevices is
    constant SYSMON_INDEX_C     : natural  := 1;
    constant BOOT_MEM_INDEX_C   : natural  := 2;
    constant LEAP_XCVR_INDEX_C  : natural  := 3;
-   constant PLL_SPI_INDEX_C    : natural  := 4;
-   constant PLL_I2C_INDEX_C    : natural  := 5;
-   constant NUM_AXIL_MASTERS_C : positive := 6;
+   constant PLL_CJC_B_INDEX_C  : natural  := 4;
+   constant LMK61E2_B_INDEX_C  : natural  := 5;
+   constant PLL_CJC_A_INDEX_C  : natural  := 6;
+   constant LMK61E2_A_INDEX_C  : natural  := 7;
+   constant NUM_AXIL_MASTERS_C : positive := 8;
 
    constant XBAR_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXIL_MASTERS_C, AXIL_BASE_ADDR_G, 20, 16);
 
@@ -237,7 +260,8 @@ begin
             axilClk         => axilClk,
             axilRst         => axilRst);
 
-      U_PLL_SPI : entity surf.Si5345
+      -- This controls the Clock Jitter Cleaner B which is creating the GtRefClks for the GTH modules (AsicData receivers)
+      U_PLL_CJC_B : entity surf.Si5345
          generic map (
             TPD_G              => TPD_G,
             MEMORY_INIT_FILE_G => MEMORY_INIT_FILE_G,
@@ -247,31 +271,73 @@ begin
             -- AXI-Lite Register Interface
             axiClk         => axilClk,
             axiRst         => axilRst,
-            axiReadMaster  => axilReadMasters(PLL_SPI_INDEX_C),
-            axiReadSlave   => axilReadSlaves(PLL_SPI_INDEX_C),
-            axiWriteMaster => axilWriteMasters(PLL_SPI_INDEX_C),
-            axiWriteSlave  => axilWriteSlaves(PLL_SPI_INDEX_C),
+            axiReadMaster  => axilReadMasters(PLL_CJC_B_INDEX_C),
+            axiReadSlave   => axilReadSlaves(PLL_CJC_B_INDEX_C),
+            axiWriteMaster => axilWriteMasters(PLL_CJC_B_INDEX_C),
+            axiWriteSlave  => axilWriteSlaves(PLL_CJC_B_INDEX_C),
             -- SPI Ports
-            coreSclk       => jitclnrSclk,
-            coreSDin       => jitclnrSdo,
-            coreSDout      => jitclnrSdio,
-            coreCsb        => jitclnrCsL);
+            coreSclk       => jitclnrBSclk,
+            coreSDin       => jitclnrBSdo,
+            coreSDout      => jitclnrBSdio,
+            coreCsb        => jitclnrBCsL);
 
-      U_PLL_I2C : entity surf.AxiI2cRegMaster
+      -- This controls the programmable oscillator that is driving CJC B
+      U_LMK61E2_B : entity surf.AxiI2cRegMaster
          generic map (
             TPD_G          => TPD_G,
             I2C_SCL_FREQ_G => 400.0E+3,  -- units of Hz
-            DEVICE_MAP_G   => PLL_I2C_CONFIG_C,
+            DEVICE_MAP_G   => LMK61E2_B_CONFIG_C,
             AXI_CLK_FREQ_G => AXIL_CLK_FREQ_G)
          port map (
             -- I2C Ports
-            scl            => pllClkScl,
-            sda            => pllClkSda,
+            scl            => pllClkBScl,
+            sda            => pllClkBSda,
             -- AXI-Lite Register Interface
-            axiReadMaster  => axilReadMasters(PLL_I2C_INDEX_C),
-            axiReadSlave   => axilReadSlaves(PLL_I2C_INDEX_C),
-            axiWriteMaster => axilWriteMasters(PLL_I2C_INDEX_C),
-            axiWriteSlave  => axilWriteSlaves(PLL_I2C_INDEX_C),
+            axiReadMaster  => axilReadMasters(LMK61E2_B_INDEX_C),
+            axiReadSlave   => axilReadSlaves(LMK61E2_B_INDEX_C),
+            axiWriteMaster => axilWriteMasters(LMK61E2_B_INDEX_C),
+            axiWriteSlave  => axilWriteSlaves(LMK61E2_B_INDEX_C),
+            -- Clocks and Resets
+            axiClk         => axilClk,
+            axiRst         => axilRst);
+
+      -- This controls the Clock Jitter Cleaner A which is controlling the pllClk
+      U_PLL_CJC_A : entity surf.Si5345
+         generic map (
+            TPD_G              => TPD_G,
+            MEMORY_INIT_FILE_G => MEMORY_INIT_FILE_G,
+            CLK_PERIOD_G       => AXIL_CLK_PERIOD_C,
+            SPI_SCLK_PERIOD_G  => (1/10.0E+6))  -- 1/(10 MHz SCLK)
+         port map (
+            -- AXI-Lite Register Interface
+            axiClk         => axilClk,
+            axiRst         => axilRst,
+            axiReadMaster  => axilReadMasters(PLL_CJC_A_INDEX_C),
+            axiReadSlave   => axilReadSlaves(PLL_CJC_A_INDEX_C),
+            axiWriteMaster => axilWriteMasters(PLL_CJC_A_INDEX_C),
+            axiWriteSlave  => axilWriteSlaves(PLL_CJC_A_INDEX_C),
+            -- SPI Ports
+            coreSclk       => jitclnrASclk,
+            coreSDin       => jitclnrASdo,
+            coreSDout      => jitclnrASdio,
+            coreCsb        => jitclnrACsL);
+
+      -- This controls the programmable oscillator that is driving CJC A
+      U_LMK61E2_A : entity surf.AxiI2cRegMaster
+         generic map (
+            TPD_G          => TPD_G,
+            I2C_SCL_FREQ_G => 400.0E+3,  -- units of Hz
+            DEVICE_MAP_G   => LMK61E2_A_CONFIG_C,
+            AXI_CLK_FREQ_G => AXIL_CLK_FREQ_G)
+         port map (
+            -- I2C Ports
+            scl            => pllClkAScl,
+            sda            => pllClkASda,
+            -- AXI-Lite Register Interface
+            axiReadMaster  => axilReadMasters(LMK61E2_A_INDEX_C),
+            axiReadSlave   => axilReadSlaves(LMK61E2_A_INDEX_C),
+            axiWriteMaster => axilWriteMasters(LMK61E2_A_INDEX_C),
+            axiWriteSlave  => axilWriteSlaves(LMK61E2_A_INDEX_C),
             -- Clocks and Resets
             axiClk         => axilClk,
             axiRst         => axilRst);

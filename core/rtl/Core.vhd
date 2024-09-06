@@ -82,19 +82,32 @@ entity Core is
       obTransIntL       : in sl;
 
       -- Jitter Cleaner PLL Ports
-      jitclnrCsL     : out sl;
-      jitclnrIntr    : in sl;
-      jitclnrLolL    : in sl;
-      jitclnrOeL     : out sl;
-      jitclnrRstL    : out sl;
-      jitclnrSclk    : out sl;
-      jitclnrSdio    : out sl;
-      jitclnrSdo     : in sl;
-      jitclnrSel     : out slv(1 downto 0);
+      jitclnrACsL     : out sl;
+      jitclnrAIntr    : in sl;
+      jitclnrALolL    : in sl;
+      jitclnrAOeL     : out sl;
+      jitclnrARstL    : out sl;
+      jitclnrASclk    : out sl;
+      jitclnrASdio    : out sl;
+      jitclnrASdo     : in sl;
+      jitclnrASel     : out slv(1 downto 0);
+
+      jitclnrBCsL     : out sl;
+      jitclnrBIntr    : in sl;
+      jitclnrBLolL    : in sl;
+      jitclnrBOeL     : out sl;
+      jitclnrBRstL    : out sl;
+      jitclnrBSclk    : out sl;
+      jitclnrBSdio    : out sl;
+      jitclnrBSdo     : in sl;
+      jitclnrBSel     : out slv(1 downto 0);
 
       -- LMK61E2
-      pllClkScl       : inout sl;
-      pllClkSda       : inout sl;
+      pllClkAScl       : inout sl;
+      pllClkASda       : inout sl;
+
+      pllClkBScl       : inout sl;
+      pllClkBSda       : inout sl;
 
       -- GT Clock Ports
       gtPllClkP       : in    sl;
@@ -467,15 +480,25 @@ architecture rtl of Core is
          --  Top Level Ports
          -------------------
          -- Jitter Cleaner PLL Ports
-         jitclnrCsL       => jitclnrCsL, 
-         jitclnrIntr      => jitclnrIntr,
-         jitclnrLolL      => jitclnrLolL,
-         jitclnrOeL       => jitclnrOeL, 
-         jitclnrRstL      => jitclnrRstL,
-         jitclnrSclk      => jitclnrSclk,
-         jitclnrSdio      => jitclnrSdio,
-         jitclnrSdo       => jitclnrSdo, 
-         jitclnrSel       => jitclnrSel,
+         jitclnrACsL  => jitclnrACsL,
+         jitclnrAIntr => jitclnrAIntr,
+         jitclnrALolL => jitclnrALolL,
+         jitclnrAOeL  => jitclnrAOeL,
+         jitclnrARstL => jitclnrARstL,
+         jitclnrASclk => jitclnrASclk,
+         jitclnrASdio => jitclnrASdio,
+         jitclnrASdo  => jitclnrASdo,
+         jitclnrASel  => jitclnrASel,
+
+         jitclnrBCsL  => jitclnrBCsL,
+         jitclnrBIntr => jitclnrBIntr,
+         jitclnrBLolL => jitclnrBLolL,
+         jitclnrBOeL  => jitclnrBOeL,
+         jitclnrBRstL => jitclnrBRstL,
+         jitclnrBSclk => jitclnrBSclk,
+         jitclnrBSdio => jitclnrBSdio,
+         jitclnrBSdo  => jitclnrBSdo,
+         jitclnrBSel  => jitclnrBSel,
 
          -- LEAP Transceiver Ports
          obTransScl      => obTransScl,
@@ -484,8 +507,10 @@ architecture rtl of Core is
          obTransIntL     => obTransIntL,
 
          -- LMK61E2
-         pllClkScl       => pllClkScl,
-         pllClkSda       => pllClkSda,
+         pllClkAScl => pllClkAScl,
+         pllClkASda => pllClkASda,
+         pllClkBScl => pllClkBScl,
+         pllClkBSda => pllClkBSda,
 
          -- SYSMON Ports
          vPIn            => vPIn,
