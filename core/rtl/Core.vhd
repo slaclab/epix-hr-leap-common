@@ -165,6 +165,7 @@ architecture rtl of Core is
    signal gtRefClk  : sl;
    signal fabClock  : sl;
    signal fabReset  : sl;
+   signal pgpRefClk : sl;
 
   begin
     
@@ -202,6 +203,19 @@ architecture rtl of Core is
             CLRMASK => '1',
             DIV     => "000",           -- Divide by 1
             O       => fabClock
+         );
+
+      U_IBUFDS_pllClk : IBUFDS_GTE4
+         generic map (
+            REFCLK_EN_TX_PATH  => '0',
+            REFCLK_HROW_CK_SEL => "00",  -- 2'b00: ODIV2 = O
+            REFCLK_ICNTL_RX    => "00"
+         )
+         port map (
+            I     => gtPllClkP,
+            IB    => gtPllClkM,
+            CEB   => '0',
+            O     => pgpRefClk
          );
 
       U_PwrUpRst : entity surf.PwrUpRst
@@ -277,7 +291,7 @@ architecture rtl of Core is
                slowAdcMasters   => slowAdcMasters,
                slowAdcSlaves    => slowAdcSlaves,
                -- LEAP Transceiver Ports
-               gtRefClk         => gtRefClk,
+               gtRefClk         => pgpRefClk,--gtRefClk,
                leapTxP          => fpgaOutObTransInP,
                leapTxN          => fpgaOutObTransInM,
                leapRxP          => fpgaInObTransOutP,
@@ -328,7 +342,7 @@ architecture rtl of Core is
                slowAdcSlaves    => slowAdcSlaves,
 
                -- LEAP Transceiver Ports
-               gtRefClk         => gtRefClk,
+               gtRefClk         => pgpRefClk,--gtRefClk,
                leapTxP          => fpgaOutObTransInP,
                leapTxN          => fpgaOutObTransInM,
                leapRxP          => fpgaInObTransOutP,
