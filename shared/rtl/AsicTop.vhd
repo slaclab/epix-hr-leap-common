@@ -137,7 +137,8 @@ entity AsicTop is
       pwrGood              : in    sl;
       acqStart             : out   sl;
 
-      rdClkSel             : out   sl
+      rdClkSel             : out   sl;
+      chargeInjTrigger     : in    sl := '0';
    );
 end AsicTop;
 
@@ -318,7 +319,9 @@ begin
          sAxilReadSlave    => axilReadSlaves(TRIGCTRL_AXI_INDEX_C),
 
          runTrigPause      => eventTrigMsgCtrl(0).pause,
-         daqTrigPause      => eventTrigMsgCtrl(1).pause
+         daqTrigPause      => eventTrigMsgCtrl(1).pause,
+
+         chargeInjTrigger  => chargeInjTrigger
       );
    
    -------------------------------------------------
