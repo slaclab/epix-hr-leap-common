@@ -138,7 +138,7 @@ entity AsicTop is
       acqStart             : out   sl;
 
       rdClkSel             : out   sl;
-      chargeInjTrigger     : in    sl := '0';
+      chargeInjTrigger     : in    sl := '0'
    );
 end AsicTop;
 
