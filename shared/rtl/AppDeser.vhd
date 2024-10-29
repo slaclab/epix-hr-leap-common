@@ -41,10 +41,12 @@ entity AppDeser is
       -- AXI-Lite Interface (axilClk domain)
       axilClk         : in  sl;
       axilRst         : in  sl;
-      axilReadMaster  : in  AxiLiteReadMasterType;
-      axilReadSlave   : out AxiLiteReadSlaveType;
-      axilWriteMaster : in  AxiLiteWriteMasterType;
-      axilWriteSlave  : out AxiLiteWriteSlaveType;
+
+      axilWriteMasters : in  AxiLiteWriteMasterArray(NUM_OF_LANES_G-1 downto 0);
+      axilWriteSlaves  : out AxiLiteWriteSlaveArray(NUM_OF_LANES_G-1 downto 0);
+      axilReadMasters  : in  AxiLiteReadMasterArray(NUM_OF_LANES_G-1 downto 0);
+      axilReadSlaves   : out AxiLiteReadSlaveArray(NUM_OF_LANES_G-1 downto 0);
+
       -- SSP Interfaces (sspClk domain)
       sspClk          : in  sl;
       sspRst          : in  sl;
@@ -59,38 +61,8 @@ end AppDeser;
 
 architecture mapping of AppDeser is
   
-   constant NUM_AXIL_MASTERS_C : positive := NUM_OF_LANES_G;
-
-   constant XBAR_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXIL_MASTERS_C, AXIL_BASE_ADDR_G, 16, 12);
-
-   signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
-   signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_SLVERR_C);
-   signal axilReadMasters  : AxiLiteReadMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
-   signal axilReadSlaves   : AxiLiteReadSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0)  := (others => AXI_LITE_READ_SLAVE_EMPTY_SLVERR_C);
-
    signal sspReset         : slv(NUM_OF_LANES_G-1 downto 0);
 begin
-
-   ---------------------------
-   -- AXI-Lite Crossbar Module
-   ---------------------------
-   U_XBAR : entity surf.AxiLiteCrossbar
-      generic map (
-         TPD_G              => TPD_G,
-         NUM_SLAVE_SLOTS_G  => 1,
-         NUM_MASTER_SLOTS_G => NUM_AXIL_MASTERS_C,
-         MASTERS_CONFIG_G   => XBAR_CONFIG_C)
-      port map (
-         sAxiWriteMasters(0) => axilWriteMaster,
-         sAxiWriteSlaves(0)  => axilWriteSlave,
-         sAxiReadMasters(0)  => axilReadMaster,
-         sAxiReadSlaves(0)   => axilReadSlave,
-         mAxiWriteMasters    => axilWriteMasters,
-         mAxiWriteSlaves     => axilWriteSlaves,
-         mAxiReadMasters     => axilReadMasters,
-         mAxiReadSlaves      => axilReadSlaves,
-         axiClk              => axilClk,
-         axiClkRst           => axilRst);
 
    GEN_VEC : for i in NUM_OF_LANES_G - 1 downto 0 generate
 

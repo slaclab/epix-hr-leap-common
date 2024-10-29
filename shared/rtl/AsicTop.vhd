@@ -138,7 +138,7 @@ entity AsicTop is
       acqStart             : out   sl;
 
       rdClkSel             : out   sl;
-      chargeInjTrigger     : in    sl := '0'
+      forceTrigger     : in    sl := '0'
    );
 end AsicTop;
 
@@ -321,7 +321,7 @@ begin
          runTrigPause      => eventTrigMsgCtrl(0).pause,
          daqTrigPause      => eventTrigMsgCtrl(1).pause,
 
-         chargeInjTrigger  => chargeInjTrigger
+         forceTrigger      => forceTrigger
       );
    
    -------------------------------------------------
