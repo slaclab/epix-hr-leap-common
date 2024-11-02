@@ -42,10 +42,15 @@ entity AppDeser is
       axilClk         : in  sl;
       axilRst         : in  sl;
 
-      axilWriteMasters : in  AxiLiteWriteMasterArray(NUM_OF_LANES_G-1 downto 0);
-      axilWriteSlaves  : out AxiLiteWriteSlaveArray(NUM_OF_LANES_G-1 downto 0);
-      axilReadMasters  : in  AxiLiteReadMasterArray(NUM_OF_LANES_G-1 downto 0);
-      axilReadSlaves   : out AxiLiteReadSlaveArray(NUM_OF_LANES_G-1 downto 0);
+      axilReadMaster  : in  AxiLiteReadMasterType;
+      axilReadSlave   : out AxiLiteReadSlaveType;
+      axilWriteMaster : in  AxiLiteWriteMasterType;
+      axilWriteSlave  : out AxiLiteWriteSlaveType;
+
+      mAxilWriteMasters : in  AxiLiteWriteMasterArray(NUM_OF_LANES_G-1 downto 0) := (others => AXI_LITE_WRITE_MASTER_INIT_C);
+      mAxilWriteSlaves  : out AxiLiteWriteSlaveArray(NUM_OF_LANES_G-1 downto 0);
+      mAxilReadMasters  : in  AxiLiteReadMasterArray(NUM_OF_LANES_G-1 downto 0) := (others => AXI_LITE_READ_MASTER_INIT_C);
+      mAxilReadSlaves   : out AxiLiteReadSlaveArray(NUM_OF_LANES_G-1 downto 0);
 
       -- SSP Interfaces (sspClk domain)
       sspClk          : in  sl;
@@ -62,9 +67,79 @@ end AppDeser;
 architecture mapping of AppDeser is
   
    signal sspReset         : slv(NUM_OF_LANES_G-1 downto 0);
+
+   constant NUM_AXIL_MASTERS_C : positive := NUM_OF_LANES_G;
+
+   constant XBAR_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXIL_MASTERS_C, AXIL_BASE_ADDR_G, 16, 12);
+
+   constant U_2S1MXBARDESER_CONFIG_C  : AxiLiteCrossbarMasterConfigArray(0 downto 0) := (
+      0                => (   baseAddr     => AXIL_BASE_ADDR_G,
+                              addrBits     => 24,
+                              connectivity => x"FFFF")
+                              );
+
+   signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
+   signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_SLVERR_C);
+   signal axilReadMasters  : AxiLiteReadMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
+   signal axilReadSlaves   : AxiLiteReadSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0)  := (others => AXI_LITE_READ_SLAVE_EMPTY_SLVERR_C);
+
+   signal axilWriteMastersMerged : AxiLiteWriteMasterArray(NUM_AXIL_MASTERS_C-1 downto 0); 
+   signal axilWriteSlavesMerged  : AxiLiteWriteSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_SLVERR_C); 
+   signal axilReadMastersMerged  : AxiLiteReadMasterArray(NUM_AXIL_MASTERS_C-1 downto 0); 
+   signal axilReadSlavesMerged   : AxiLiteReadSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_READ_SLAVE_EMPTY_SLVERR_C);
+
 begin
 
+      ---------------------------
+   -- AXI-Lite Crossbar Module
+   ---------------------------
+   U_XBAR : entity surf.AxiLiteCrossbar
+      generic map (
+         TPD_G              => TPD_G,
+         NUM_SLAVE_SLOTS_G  => 1,
+         NUM_MASTER_SLOTS_G => NUM_AXIL_MASTERS_C,
+         MASTERS_CONFIG_G   => XBAR_CONFIG_C)
+      port map (
+         sAxiWriteMasters(0) => axilWriteMaster,
+         sAxiWriteSlaves(0)  => axilWriteSlave,
+         sAxiReadMasters(0)  => axilReadMaster,
+         sAxiReadSlaves(0)   => axilReadSlave,
+         mAxiWriteMasters    => axilWriteMasters,
+         mAxiWriteSlaves     => axilWriteSlaves,
+         mAxiReadMasters     => axilReadMasters,
+         mAxiReadSlaves      => axilReadSlaves,
+         axiClk              => axilClk,
+         axiClkRst           => axilRst);
+
+
+
    GEN_VEC : for i in NUM_OF_LANES_G - 1 downto 0 generate
+
+      U_2S1MXBARAPPDESER : entity surf.AxiLiteCrossbar
+         generic map (
+            TPD_G              => TPD_G,
+            NUM_SLAVE_SLOTS_G  => 2,
+            NUM_MASTER_SLOTS_G => 1,
+            MASTERS_CONFIG_G   => U_2S1MXBARDESER_CONFIG_C)
+         port map (
+            axiClk               => axilClk,
+            axiClkRst            => axilRst,
+
+            sAxiWriteMasters(0)  => mAxilWriteMasters(i),
+            sAxiWriteMasters(1)  => axilWriteMasters(i),
+            sAxiWriteSlaves(0)   => mAxilWriteSlaves(i),
+            sAxiWriteSlaves(1)   => axilWriteSlaves(i),
+            sAxiReadMasters(0)   => mAxilReadMasters(i),
+            sAxiReadMasters(1)   => axilReadMasters(i),
+            sAxiReadSlaves(0)    => mAxilReadSlaves(i),
+            sAxiReadSlaves(1)    => axilReadSlaves(i),
+         
+            mAxiWriteMasters(0) => axilWriteMastersMerged(i),
+            mAxiWriteSlaves(0)  => axilWriteSlavesMerged(i),
+            mAxiReadMasters(0)  => axilReadMastersMerged(i),
+            mAxiReadSlaves(0)   => axilReadSlavesMerged(i)  
+         );
+
 
       U_Deser_Group : entity work.AppDeserGroup
          generic map (
@@ -79,10 +154,10 @@ begin
             -- AXI-Lite Interface (axilClk domain)
             axilClk          => axilClk,
             axilRst          => axilRst,
-            axilReadMaster   => axilReadMasters(i),
-            axilReadSlave    => axilReadSlaves(i),
-            axilWriteMaster  => axilWriteMasters(i),
-            axilWriteSlave   => axilWriteSlaves(i),
+            axilReadMaster   => axilReadMastersMerged(i),
+            axilReadSlave    => axilReadSlavesMerged(i),
+            axilWriteMaster  => axilWriteMastersMerged(i),
+            axilWriteSlave   => axilWriteSlavesMerged(i),
 
 
             sspClk4x         => sspClk4x,
