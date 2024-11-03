@@ -66,8 +66,6 @@ end AppDeser;
 
 architecture mapping of AppDeser is
   
-   signal sspReset         : slv(NUM_OF_LANES_G-1 downto 0);
-
    constant NUM_AXIL_MASTERS_C : positive := NUM_OF_LANES_G;
 
    constant XBAR_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXIL_MASTERS_C, AXIL_BASE_ADDR_G, 16, 12);
@@ -88,6 +86,8 @@ architecture mapping of AppDeser is
    signal axilReadMastersMerged  : AxiLiteReadMasterArray(NUM_AXIL_MASTERS_C-1 downto 0); 
    signal axilReadSlavesMerged   : AxiLiteReadSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_READ_SLAVE_EMPTY_SLVERR_C);
 
+   signal sspReset         : slv(NUM_OF_LANES_G-1 downto 0);
+   
 begin
 
       ---------------------------
