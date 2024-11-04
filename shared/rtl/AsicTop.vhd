@@ -53,8 +53,8 @@ entity AsicTop is
    port (
 
       -- Clocking ports
-      sysClk      : in sl;
-      sysRst      : in sl;
+      sysClk               : in sl;
+      sysRst               : in sl;
 
       -- Trigger Interface (triggerClk domain)
       triggerClk           : out   sl;
@@ -93,16 +93,16 @@ entity AsicTop is
       --      Interfaces to Application     --
       ----------------------------------------
       -- AXI-Lite Interface (axilClk domain): Address Range = [0x80000000:0xFFFFFFFF]
-      axilClk            : in  sl;
-      axilRst            : in  sl;
-      axilReadMaster     : in  AxiLiteReadMasterType;
-      axilReadSlave      : out AxiLiteReadSlaveType;
-      axilWriteMaster    : in  AxiLiteWriteMasterType;
-      axilWriteSlave     : out AxiLiteWriteSlaveType;
+      axilClk              : in  sl;
+      axilRst              : in  sl;
+      axilReadMaster       : in  AxiLiteReadMasterType;
+      axilReadSlave        : out AxiLiteReadSlaveType;
+      axilWriteMaster      : in  AxiLiteWriteMasterType;
+      axilWriteSlave       : out AxiLiteWriteSlaveType;
 
       -- Streaming Interfaces (axilClk domain)
-      asicDataMasters    : out AxiStreamMasterArray(NUM_LANES_G - 1 downto 0);
-      asicDataSlaves     : in  AxiStreamSlaveArray(NUM_LANES_G - 1 downto 0);
+      asicDataMasters      : out AxiStreamMasterArray(NUM_LANES_G - 1 downto 0);
+      asicDataSlaves       : in  AxiStreamSlaveArray(NUM_LANES_G - 1 downto 0);
 
       ----------------------------------------
       --          Top Level Ports           --
@@ -121,8 +121,8 @@ entity AsicTop is
       serialNumber         : inout slv(NUM_DS2411_G-1 downto 0);
       
       -- TTL external input triggers
-      runTrigger      : in  sl;
-      daqTrigger      : in  sl;
+      runTrigger           : in  sl;
+      daqTrigger           : in  sl;
 
       -- SSI commands
       ssiCmd      : in SsiCmdMasterType;
@@ -137,7 +137,8 @@ entity AsicTop is
       pwrGood              : in    sl;
       acqStart             : out   sl;
 
-      rdClkSel             : out   sl
+      rdClkSel             : out   sl;
+      forceTrigger         : in    sl := '0'
    );
 end AsicTop;
 
@@ -318,7 +319,9 @@ begin
          sAxilReadSlave    => axilReadSlaves(TRIGCTRL_AXI_INDEX_C),
 
          runTrigPause      => eventTrigMsgCtrl(0).pause,
-         daqTrigPause      => eventTrigMsgCtrl(1).pause
+         daqTrigPause      => eventTrigMsgCtrl(1).pause,
+
+         forceTrigger      => forceTrigger
       );
    
    -------------------------------------------------
