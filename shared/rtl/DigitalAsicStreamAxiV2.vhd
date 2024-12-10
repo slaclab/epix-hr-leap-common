@@ -132,6 +132,8 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       fillOnFailTimeoutData       : slv(31 downto 0); 
       fillOnFailTimeoutWaitSof    : slv(31 downto 0); 
       fillOnFailTimeoutCntr       : slv(31 downto 0); 
+      fillOnFailTimeoutCntrMin    : slv(31 downto 0);
+      fillOnFailTimeoutCntrMax    : slv(31 downto 0);
       sroReceived                 : sl;
       wsofStateCntrMin            : slv(15 downto 0);
       wsofStateCntrMax            : slv(15 downto 0);
@@ -190,6 +192,8 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       tempDisableLane             => (others=>'0'),
       fillOnFailLastMask          => (others=>'0'),
       fillOnFailTimeoutCntr       => (others=>'0'),
+      fillOnFailTimeoutCntrMin    => (others=>'0'),
+      fillOnFailTimeoutCntrMax    => (others=>'0'),
       daqTriggerSync              => (others=>'0'),
       dFifoRd                     => (others=>'0'),
       wsofStateCntrMin            => (others=>'0'),
@@ -507,13 +511,15 @@ begin
       axiSlaveRegisterR(regCon, x"004",  0, r.frmSize);
       axiSlaveRegisterR(regCon, x"008",  0, r.frmMax);
       axiSlaveRegisterR(regCon, x"00C",  0, r.frmMin);
+      axiSlaveRegister (regCon, x"014",  0, v.fillOnFailPeristantDisable);      
+      axiSlaveRegisterR(regCon, x"018",  0, r.fillOnFailTimeoutCntrMin);
+      axiSlaveRegisterR(regCon, x"01C",  0, r.fillOnFailTimeoutCntrMax);
       axiSlaveRegister (regCon, x"024",  0, v.rstCnt);
       axiSlaveRegister (regCon, x"028",  0, v.dataReqLane);
       axiSlaveRegister (regCon, x"02C",  0, v.disableLane);
       axiSlaveRegister (regCon, x"030",  0, v.enumDisLane);
       axiSlaveRegister (regCon, x"034",  0, v.gainBitRemap);
       axiSlaveRegister (regCon, x"038",  0, v.fillOnFailEn);
-      axiSlaveRegister (regCon, x"014",  0, v.fillOnFailPeristantDisable);
       axiSlaveRegister (regCon, x"03C",  0, v.fillOnFailTimeoutWaitSof);
       axiSlaveRegister (regCon, x"040",  0, v.fillOnFailTimeoutData);
       axiSlaveRegisterR(regCon, x"044",  0, r.fillOnFailCnt);
@@ -537,6 +543,7 @@ begin
       axiSlaveRegisterR(regCon, x"098",  0, r.trigToSroCntrMin);
       axiSlaveRegisterR(regCon, x"09C",  0, r.trigToSroCntrMax);
       axiSlaveRegisterR(regCon, x"010",  0, r.trigToSroCntr);
+
       
       axiSlaveDefault(regCon, v.axilWriteSlave, v.axilReadSlave, AXIL_ERR_RESP_G);
       
@@ -811,6 +818,23 @@ begin
             v.wsofStateCntr := r.wsofStateCntr + 1;
          end if;
       end if;
+
+      if r.rstCnt = '1' then
+         v.fillOnFailTimeoutCntrMin  := (others=>'1');
+         v.fillOnFailTimeoutCntrMax  := (others=>'0');
+         v.fillOnFailTimeoutCntr     := (others=>'0');
+      else
+         if (r.stateD1 = DATA_S and r.state /= DATA_S) then -- update actual, min, max register when leaving DATA_S (on timeout or normally)
+            if r.fillOnFailTimeoutCntrMax <= r.fillOnFailTimeoutCntr then
+               v.fillOnFailTimeoutCntrMax := r.fillOnFailTimeoutCntr;
+            end if;
+            if r.fillOnFailTimeoutCntrMin >= r.fillOnFailTimeoutCntr then
+               v.fillOnFailTimeoutCntrMin := r.fillOnFailTimeoutCntr;
+            end if;
+         end if;
+      end if;
+
+      
 
       if r.rstCnt = '1' then
          v.dataStateCntrMin  := (others=>'1');
