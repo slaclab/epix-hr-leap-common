@@ -132,7 +132,6 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       fillOnFailTimeoutData       : slv(31 downto 0); 
       fillOnFailTimeoutWaitSof    : slv(31 downto 0); 
       fillOnFailTimeoutCntr       : slv(31 downto 0); 
-      fillOnFailTimeoutCntrMin    : slv(31 downto 0);
       fillOnFailTimeoutCntrMax    : slv(31 downto 0);
       sroReceived                 : sl;
       wsofStateCntrMin            : slv(15 downto 0);
@@ -192,7 +191,6 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       tempDisableLane             => (others=>'0'),
       fillOnFailLastMask          => (others=>'0'),
       fillOnFailTimeoutCntr       => (others=>'0'),
-      fillOnFailTimeoutCntrMin    => (others=>'0'),
       fillOnFailTimeoutCntrMax    => (others=>'0'),
       daqTriggerSync              => (others=>'0'),
       dFifoRd                     => (others=>'0'),
@@ -512,8 +510,7 @@ begin
       axiSlaveRegisterR(regCon, x"008",  0, r.frmMax);
       axiSlaveRegisterR(regCon, x"00C",  0, r.frmMin);
       axiSlaveRegister (regCon, x"014",  0, v.fillOnFailPeristantDisable);      
-      axiSlaveRegisterR(regCon, x"018",  0, r.fillOnFailTimeoutCntrMin);
-      axiSlaveRegisterR(regCon, x"01C",  0, r.fillOnFailTimeoutCntrMax);
+      axiSlaveRegisterR(regCon, x"018",  0, r.fillOnFailTimeoutCntrMax);
       axiSlaveRegister (regCon, x"024",  0, v.rstCnt);
       axiSlaveRegister (regCon, x"028",  0, v.dataReqLane);
       axiSlaveRegister (regCon, x"02C",  0, v.disableLane);
@@ -759,7 +756,7 @@ begin
             if r.dataCntLaneMin(i) >= r.dataCntLane(i) then
                v.dataCntLaneMin(i) := r.dataCntLane(i);
             end if;
-         elsif r.daqTriggerSync(0) = '1' then                     -- daqTriggerSync must be delayed few cycles as the same signal is taking the FSM out from DATA_S (condition above)
+         elsif r.daqTriggerSync(0) = '1' then                     -- daqTriggerSync must be delayed few cycles as the same signal is taking the FSM out from 1, 1, 1, 1 (condition above)
             v.dataCntLane(i) := (others=>'0');                 -- reset counter before next data cycle
          elsif rxValid(i) = '1' and rxSof(i) = '0' then
             v.dataCntLane(i) := r.dataCntLane(i) + 1;
@@ -820,16 +817,11 @@ begin
       end if;
 
       if r.rstCnt = '1' then
-         v.fillOnFailTimeoutCntrMin  := (others=>'1');
          v.fillOnFailTimeoutCntrMax  := (others=>'0');
-         v.fillOnFailTimeoutCntr     := (others=>'0');
       else
-         if (r.stateD1 = DATA_S and r.state /= DATA_S) then -- update actual, min, max register when leaving DATA_S (on timeout or normally)
+         if (r.stateD1 = DATA_S) then -- update min, max register when inside the state
             if r.fillOnFailTimeoutCntrMax <= r.fillOnFailTimeoutCntr then
                v.fillOnFailTimeoutCntrMax := r.fillOnFailTimeoutCntr;
-            end if;
-            if r.fillOnFailTimeoutCntrMin >= r.fillOnFailTimeoutCntr then
-               v.fillOnFailTimeoutCntrMin := r.fillOnFailTimeoutCntr;
             end if;
          end if;
       end if;
