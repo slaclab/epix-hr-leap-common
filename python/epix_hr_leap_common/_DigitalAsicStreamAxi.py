@@ -67,7 +67,7 @@ class DigitalAsicStreamAxi(pr.Device):
 
       for i in range(1, numberLanes+1):
          self.add(pr.RemoteVariable(
-            name         = f'SroToSofCntr[{i-1}]',
+            name         = f'SroToSofCntrMax[{i-1}]',
             description  = 'counts the number of cycles between the arrival of SRO and the SOF',
             offset       = 0x020 + i*0x100,
             bitSize      = 16,

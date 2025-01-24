@@ -146,7 +146,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       frameCyclesCtrMin           : slv(15 downto 0);
       frameCyclesCntrMax          : slv(15 downto 0); 
       frameCyclesCntr             : slv(15 downto 0);  
-      sroToSofCntrReg             : Slv16Array(LANES_NO_G-1 downto 0);
+      sroToSofCntrMax             : Slv16Array(LANES_NO_G-1 downto 0);
       sroToSofCntr                : Slv16Array(LANES_NO_G-1 downto 0);  
       trigToSroCntrMin              : slv(15 downto 0);
       trigToSroCntrMax            : slv(15 downto 0); 
@@ -209,7 +209,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       readyLowCyclesCtrMin        => (others=>'0'),        
       readyLowCyclesCtrMax        => (others=>'0'),        
       readyLowCyclesCtr           => (others=>'0'), 
-      sroToSofCntrReg             => (others=>(others=>'0')),
+      sroToSofCntrMax             => (others=>(others=>'0')),
       sroToSofCntr                => (others=>(others=>'0')),
       trigToSroCntrMin              => (others=>'1'),        
       trigToSroCntrMax            => (others=>'0'),        
@@ -466,7 +466,7 @@ begin
          axiSlaveRegisterR(regCon, x"0014"+base,  0, r.dataDlyLaneReg(i));
          axiSlaveRegisterR(regCon, x"0018"+base,  0, r.dataOvfLane(i));
          axiSlaveRegisterR(regCon, x"001C"+base,  0, r.fillOnFailCntLane(i));
-         axiSlaveRegisterR(regCon, x"0020"+base,  0, r.sroToSofCntrReg(i));
+         axiSlaveRegisterR(regCon, x"0020"+base,  0, r.sroToSofCntrMax(i));
 
          
          axiSlaveDefault(regCon, v.axilWriteSlave, v.axilReadSlave, AXIL_ERR_RESP_G);
@@ -784,13 +784,13 @@ begin
          end if;
 
          if r.rstCnt = '1' then
-            v.sroToSofCntrReg(i)  := (others=>'0');
+            v.sroToSofCntrMax(i)  := (others=>'0');
             v.sroToSofCntr(i)     := (others=>'0');
          elsif daqTriggerSync = '1' then
             v.sroToSofCntr(i) := (others=>'0');
          -- Register data only on time of transition out of WAIT_SOF_S state
-         elsif (r.stateD1 = WAIT_SOF_S and r.state /= WAIT_SOF_S) then
-            v.sroToSofCntrReg(i) := r.sroToSofCntr(i);
+         elsif (r.stateD1 = WAIT_SOF_S and r.state /= WAIT_SOF_S and r.sroToSofCntrMax(i) < r.sroToSofCntr(i)) then
+            v.sroToSofCntrMax(i) := r.sroToSofCntr(i);
          -- Check if there is not data on that lane in this cycle (only significant in WAIT_SOF_S state)
          elsif dFifoSof(i) = '0' and r.sroReceived = '1' and r.sroToSofCntr(i) /= x"ffff" then
             v.sroToSofCntr(i) := r.sroToSofCntr(i) + 1;
