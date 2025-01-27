@@ -567,13 +567,10 @@ begin
                v.tempDisableLane := (others => '0');
             end if;
             v.fillOnFailTimeoutCntr := (others => '0');
+            -- Any SRO before daq trigger is ignored
             v.sroReceived := '0';
             if daqTriggerSync = '1' then
                v.state := WAIT_SOF_S;
-               -- Any SRO before daq trigger is ignored
-               if (sroSync = '1') then
-                  v.sroReceived := '1';
-               end if;
             end if;
 
          -- condition to enter here is that daqTriggerSync already arrived
@@ -786,7 +783,7 @@ begin
          if r.rstCnt = '1' then
             v.sroToSofCntrMax(i)  := (others=>'0');
             v.sroToSofCntr(i)     := (others=>'0');
-         elsif daqTriggerSync = '1' then
+         elsif r.sroReceived = '0' then
             v.sroToSofCntr(i) := (others=>'0');
          -- Register data only on time of transition out of WAIT_SOF_S state
          elsif (r.stateD1 = WAIT_SOF_S and r.state /= WAIT_SOF_S) then
