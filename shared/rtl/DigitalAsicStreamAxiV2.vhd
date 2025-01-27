@@ -916,7 +916,7 @@ begin
          if (r.state = WAIT_SOF_S and r.sroReceived = '0') then
             v.trigToSroCntr := r.trigToSroCntr + 1;
          end if;
-         if (r.state \= WAIT_SOF_S and r.stateD1 = WAIT_SOF_S) then 
+         if (r.state /= WAIT_SOF_S and r.stateD1 = WAIT_SOF_S) then 
             if r.trigToSroCntrMax <= r.trigToSroCntr then
                v.trigToSroCntrMax := r.trigToSroCntr;
             end if;
