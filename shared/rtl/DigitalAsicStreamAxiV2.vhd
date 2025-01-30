@@ -281,9 +281,12 @@ architecture RTL of DigitalAsicStreamAxiV2 is
    --attribute keep : string;
    --attribute keep of r           : signal is "true";
    --attribute keep of daqTriggerSync : signal is "true";
+   --attribute keep of acqStartSync : signal is "true";
+   --attribute keep of sroSync   : signal is "true";
    --attribute keep of dFifoEofe   : signal is "true";
    --attribute keep of dFifoEof    : signal is "true";
    --attribute keep of dFifoSof    : signal is "true";
+   --attribute keep of dFifoRst    : signal is "true";
    --attribute keep of dFifoValid  : signal is "true";
    --attribute keep of empty       : signal is "true";
    --attribute keep of underflow   : signal is "true";
@@ -339,7 +342,7 @@ begin
       dataIn      => daqTrigger,
       risingEdge  => daqTriggerSync
    );
-
+   
    sroSync_U : entity surf.SynchronizerEdge
    port map (
       clk         => deserClk,
@@ -588,12 +591,12 @@ begin
             
             -- next SRO while waiting for previous SOF. Too late to recover using autoFillOnFailure
             for i in 0 to (LANES_NO_G-1) loop
-               if daqTriggerSync = '1' and dFifoSof(i) = '0' then
+               if dFifoSof(i) = '0' then
                   v.timeoutCntLane(i) := r.timeoutCntLane(i) + 1;
                 end if;
             end loop;
             
-            if ((dFifoSof(LANES_NO_G-1 downto 0) or r.disableLane or (fillOnFailEnV and r.tempDisableLane)) = VECTOR_OF_ONES_C(LANES_NO_G-1 downto 0)) then
+            if ((dFifoSof and dFifoValid) or r.disableLane or (fillOnFailEnV and r.tempDisableLane)) = VECTOR_OF_ONES_C(LANES_NO_G-1 downto 0) then
                v.acqNo(1) := r.acqNo(0);
                v.state := HDR_S;
                v.fillOnFailTimeoutCntr := (others => '0');
@@ -763,20 +766,20 @@ begin
          if r.rstCnt = '1' then
             v.dataDlyLaneReg(i)  := (others=>'0');
             v.dataDlyLane(i)     := (others=>'0');
-         elsif daqTriggerSync = '1' then
+         elsif r.sroReceived = '0' then
             v.dataDlyLane(i) := (others=>'0');
          -- Register data only on time of transition out of WAIT_SOF_S state
          elsif (r.stateD1 = WAIT_SOF_S and r.state /= WAIT_SOF_S) then
             v.dataDlyLaneReg(i) := r.dataDlyLane(i);
          -- Check if there is not data on that lane in this cycle (only significant in WAIT_SOF_S state)
-         elsif dFifoSof(i) = '0' and r.dataDlyLane(i) /= x"ffff" then
+         elsif dFifoSof(i) = '0' and r.dataDlyLane(i) /= x"ffff" and r.state = WAIT_SOF_S then
             v.dataDlyLane(i) := r.dataDlyLane(i) + 1;
          end if;
          
          -- count writes to full FIFO (overflow)
          if r.rstCnt = '1' then
             v.dataOvfLane(i) := (others=>'0');
-         elsif rxFull(i) = '1' and rxValid(i) = '1' and r.dataOvfLane(i) /= x"ffff" then
+         elsif rxFull(i) = '1' and rxValid(i) = '1' and r.dataOvfLane(i) /= x"ffff" and (r.state = WAIT_SOF_S or r.state = HDR_S or r.state = DATA_S) then
             v.dataOvfLane(i) := r.dataOvfLane(i) + 1;
          end if;
 
