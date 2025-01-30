@@ -166,4 +166,15 @@ class DigitalAsicStreamAxi(pr.Device):
 
       self.add(pr.RemoteCommand(name='CountReset', description='Resets counters', 
                              offset=0x00000024, bitSize=1, bitOffset=0, function=pr.Command.touchOne))
+      
+      @self.command()
+      def FixTimeouts():
+         maxSroToSofDelay = 0
+         for i in range(numberLanes) :
+            current = self.SroToSofCntrMax[i].get()
+            if (maxSroToSofDelay < current) :
+               maxSroToSofDelay = current
+         self.SroToSofTimeout.set(maxSroToSofDelay + 10)
 
+
+         self.DataTimeout.set(self.fillOnFailDataMax.get() + 10)
