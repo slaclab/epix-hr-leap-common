@@ -751,7 +751,7 @@ begin
             end if;
          elsif r.daqTriggerSync(0) = '1' then                     -- daqTriggerSync must be delayed few cycles as the same signal is taking the FSM out from 1, 1, 1, 1 (condition above)
             v.dataCntLane(i) := (others=>'0');                 -- reset counter before next data cycle
-         elsif rxValid(i) = '1' and rxSof(i) = '0' then
+         elsif rxValid(i) = '1' and rxSof(i) = '0' and r.state = DATA_S then
             v.dataCntLane(i) := r.dataCntLane(i) + 1;
          end if;
          
