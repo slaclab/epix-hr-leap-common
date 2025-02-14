@@ -589,13 +589,6 @@ begin
                end if;             
             end loop;
             
-            -- next SRO while waiting for previous SOF. Too late to recover using autoFillOnFailure
-            for i in 0 to (LANES_NO_G-1) loop
-               if dFifoSof(i) = '0' then
-                  v.timeoutCntLane(i) := r.timeoutCntLane(i) + 1;
-                end if;
-            end loop;
-            
             if ((dFifoSof and dFifoValid) or r.disableLane or (fillOnFailEnV and r.tempDisableLane)) = VECTOR_OF_ONES_C(LANES_NO_G-1 downto 0) then
                v.acqNo(1) := r.acqNo(0);
                v.state := HDR_S;
