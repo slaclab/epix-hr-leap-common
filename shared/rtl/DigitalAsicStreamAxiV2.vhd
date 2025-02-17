@@ -549,7 +549,7 @@ begin
       axiSlaveRegisterR(regCon, x"12C",  0, dFifoValid);
       axiSlaveRegisterR(regCon, x"130",  0, dFifoSof);
 
-      G_CROSSBAR_SPLIT : for i in LANES_NO_G-1 downto 0 generate
+      G_RDDATACOUNT : for i in LANES_NO_G-1 downto 0 generate
          axiSlaveRegisterR(regCon, x"134" + 4*i,  0, rdDataCount(i));
       end generate;
 
