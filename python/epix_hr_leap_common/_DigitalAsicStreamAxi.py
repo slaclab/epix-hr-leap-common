@@ -38,7 +38,7 @@ class DigitalAsicStreamAxi(pr.Device):
       self.add(pr.RemoteVariable(name='FillOnFailPersistantDisable',description='Failing lanes are perminantly disabled',                   offset=0x00000014, bitSize=1,   bitOffset=0, base=pr.UInt, disp = '{}', mode='RW', enum=yesNo))
       self.add(pr.RemoteVariable(name='SroToSofTimeout',            description='Timeout waiting for Sof After Sro',                        offset=0x0000003C, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
       self.add(pr.RemoteVariable(name='DataTimeout',                description='Timeout waiting for all lanes to send a single pixel',     offset=0x00000040, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
-      self.add(pr.RemoteVariable(name='FillOnFailCnt',              description='No. of images where fill-on-fail was activated',           offset=0x00000044, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
+      self.add(pr.RemoteVariable(name='FillOnFailCnt',              description='No. of images where fill-on-fail was activated',           offset=0x00000044, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO', pollInterval = 1))
 
       self.add(pr.RemoteVariable(name='FillOnFailLastMask',     description='Last temporary mask used to disable lanes', offset=0x00000048, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', pollInterval = 1))
       self.add(pr.RemoteVariable(name='State',                  description='IDLE_S, WAIT_SOF_S, HDR_S, DATA_S, TIMEOUT_S', offset=0x0000004C, bitSize=8,  bitOffset=0, base=pr.UInt, mode='RO', enum=states, pollInterval = 1))

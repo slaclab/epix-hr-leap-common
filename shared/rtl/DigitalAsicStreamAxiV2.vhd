@@ -488,9 +488,9 @@ begin
    end generate;
 
    
-   comb : process (deserRst, axilReadMasters(GENERAL_AXI_INDEX_C), axilWriteMasters(GENERAL_AXI_INDEX_C), txSlave, r, 
-      acqNoSync, dFifoExtData, dFifoValid, dFifoSof, dFifoEof, dFifoEofe, 
-      daqTriggerSync, sroSync, rxValid, rxSof, rxEof, rxEofe, rxFull) is
+   comb : process (deserRst, axilReadMasters(GENERAL_AXI_INDEX_C), axilWriteMasters(GENERAL_AXI_INDEX_C),
+                  txSlave, r, acqNoSync, dFifoExtData, dFifoValid, dFifoSof, dFifoEof, dFifoEofe, 
+                  daqTriggerSync, sroSync, rxValid, rxSof, rxEof, rxEofe, rxFull, rdDataCount) is
       variable v             : RegType;
       variable regCon        : AxiLiteEndPointType;
       variable fillOnFailEnV : slv(LANES_NO_G-1 downto 0);
@@ -544,6 +544,16 @@ begin
       axiSlaveRegisterR(regCon, x"09C",  0, r.trigToSroCntrMax);
       axiSlaveRegisterR(regCon, x"010",  0, r.trigToSroCntr);
 
+      axiSlaveRegisterR(regCon, x"124",  0, r.tempDisableLane);
+      axiSlaveRegisterR(regCon, x"128",  0, fillOnFailEnV);
+      axiSlaveRegisterR(regCon, x"12C",  0, dFifoValid);
+      axiSlaveRegisterR(regCon, x"130",  0, dFifoSof);
+
+      G_CROSSBAR_SPLIT : for i in LANES_NO_G-1 downto 0 generate
+         axiSlaveRegisterR(regCon, x"134" + 4*i,  0, rdDataCount(i));
+      end generate;
+
+
       
       axiSlaveDefault(regCon, v.axilWriteSlave, v.axilReadSlave, AXIL_ERR_RESP_G);
       
@@ -590,7 +600,7 @@ begin
             end loop;
             
             if ((dFifoSof and dFifoValid) or r.disableLane or (fillOnFailEnV and r.tempDisableLane)) = VECTOR_OF_ONES_C(LANES_NO_G-1 downto 0) then
-               v.acqNo(1) := r.acqNo(0);
+               v.acqNo(1) := r.acqNo(0); 
                v.state := HDR_S;
                v.fillOnFailTimeoutCntr := (others => '0');
                -- 
@@ -749,7 +759,7 @@ begin
             if r.dataCntLaneMin(i) >= r.dataCntLane(i) then
                v.dataCntLaneMin(i) := r.dataCntLane(i);
             end if;
-         elsif r.daqTriggerSync(0) = '1' then                     -- daqTriggerSync must be delayed few cycles as the same signal is taking the FSM out from 1, 1, 1, 1 (condition above)
+         elsif r.daqTriggerSync(0) = '1' then                  -- daqTriggerSync must be delayed few cycles as the same signal is taking the FSM out from 1, 1, 1, 1 (condition above)
             v.dataCntLane(i) := (others=>'0');                 -- reset counter before next data cycle
          elsif rxValid(i) = '1' and rxSof(i) = '0' and r.state = DATA_S then
             v.dataCntLane(i) := r.dataCntLane(i) + 1;
