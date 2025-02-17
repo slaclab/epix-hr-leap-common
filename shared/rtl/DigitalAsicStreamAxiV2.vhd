@@ -550,7 +550,7 @@ begin
       axiSlaveRegisterR(regCon, x"130",  0, dFifoSof);
 
       for i in 0 to LANES_NO_G-1 loop
-         axiSlaveRegisterR(regCon, x"134" + 4*i,  0, rdDataCount(i));
+         axiSlaveRegisterR(regCon, x"0134" + toSlv(4*i, 16),  0, rdDataCount(i));
       end loop;
 
 
