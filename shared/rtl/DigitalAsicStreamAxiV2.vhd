@@ -549,9 +549,9 @@ begin
       axiSlaveRegisterR(regCon, x"12C",  0, dFifoValid);
       axiSlaveRegisterR(regCon, x"130",  0, dFifoSof);
 
-      G_RDDATACOUNT : for i in LANES_NO_G-1 downto 0 generate
+      for i in 0 to LANES_NO_G-1 loop
          axiSlaveRegisterR(regCon, x"134" + 4*i,  0, rdDataCount(i));
-      end generate;
+      end loop;
 
 
       
