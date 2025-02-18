@@ -479,6 +479,7 @@ begin
             axiSlaveRegisterR(regCon, x"0030"+base,  0, dFifoSof);
             axiSlaveRegisterR(regCon, x"0034"+base,  0, r.fillOnFailTimeoutCntr);
             axiSlaveRegisterR(regCon, x"0038"+base,  0, r.sroReceived);
+            axiSlaveRegisterR(regCon, x"003C"+base,  0, r.tempDisableLane);
          end if;         
          
          axiSlaveDefault(regCon, v.axilWriteSlave, v.axilReadSlave, AXIL_ERR_RESP_G);
@@ -614,7 +615,9 @@ begin
             -- reach limit to fill on fail counter, disable lane temporarily for this image
             if (r.fillOnFailTimeoutCntr >= r.fillOnFailTimeoutWaitSof) then
                for i in 0 to (LANES_NO_G-1) loop
-                  if dFifoSof(i) = '0' and r.disableLane(i) = '0' and r.fillOnFailEn = '1' then
+                  if (dFifoSof(i) = '0' or (dFifoSof(i) = '1' and dFifoValid(i) = '0')) and 
+                  r.disableLane(i) = '0' and 
+                  r.fillOnFailEn = '1' then
                      v.tempDisableLane(i) := '1';
                   end if;
                end loop;
