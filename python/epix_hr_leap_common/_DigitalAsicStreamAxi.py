@@ -65,14 +65,16 @@ class DigitalAsicStreamAxi(pr.Device):
 
       self.add(pr.RemoteVariable(name='fillOnFailDataMax', description='', offset=0x00000018, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
 
-      self.add(pr.RemoteVariable(name='dFifoValid', description='', offset=0x0000012C, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
-      self.add(pr.RemoteVariable(name='dFifoSof', description='', offset=0x00000130, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='dFifoValid', description='', offset=0x0000012C, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='dFifoSof', description='', offset=0x00000130, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='fillOnFailTimeoutCntr', description='', offset=0x00000134, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='sroReceived', description='', offset=0x00000138, bitSize=1,  bitOffset=0, base=pr.UInt, mode='RO', pollInterval = 1))
 
-      for i in range(0, numberLanes):
+      for i in range(1, numberLanes+1):
          self.add(pr.RemoteVariable(
-            name         = f'rdDataCount[{i}]',
+            name         = f'rdDataCount[{i-1}]',
             description  = '',
-            offset       = 0x134 + i*4,
+            offset       = 0x024 + i*0x100,
             bitSize      = 9,
             mode         = 'RO',
             pollInterval = 1,

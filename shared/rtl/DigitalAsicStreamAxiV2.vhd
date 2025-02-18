@@ -477,6 +477,8 @@ begin
          if (i = 0) then
             axiSlaveRegisterR(regCon, x"002C"+base,  0, dFifoValid);
             axiSlaveRegisterR(regCon, x"0030"+base,  0, dFifoSof);
+            axiSlaveRegisterR(regCon, x"0034"+base,  0, r.fillOnFailTimeoutCntr);
+            axiSlaveRegisterR(regCon, x"0038"+base,  0, r.sroReceived);
          end if;         
          
          axiSlaveDefault(regCon, v.axilWriteSlave, v.axilReadSlave, AXIL_ERR_RESP_G);
