@@ -65,14 +65,14 @@ class DigitalAsicStreamAxi(pr.Device):
 
       self.add(pr.RemoteVariable(name='fillOnFailDataMax', description='', offset=0x00000018, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
 
-      self.add(pr.RemoteVariable(name='dFifoValid', description='', offset=0x0000012C, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
-      self.add(pr.RemoteVariable(name='dFifoSof', description='', offset=0x00000130, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='dFifoValid', description='', offset=0x0000022C, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='dFifoSof', description='', offset=0x00000230, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
 
       for i in range(0, numberLanes):
          self.add(pr.RemoteVariable(
             name         = f'rdDataCount[{i}]',
             description  = '',
-            offset       = 0x134 + i*4,
+            offset       = 0x234 + i*4,
             bitSize      = 9,
             mode         = 'RO',
             pollInterval = 1,
