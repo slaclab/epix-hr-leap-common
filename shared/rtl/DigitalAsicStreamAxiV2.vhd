@@ -451,7 +451,9 @@ begin
 
    G_CROSSBAR_SPLIT : for i in LANES_NO_G-1 downto 0 generate
       -- split registers with cross bar to close timing
-      crossbar_split : process (deserRst, rLane(i), r, axilReadMasters(LANE_BASE_AXI_INDEX_C+i), axilWriteMasters(LANE_BASE_AXI_INDEX_C+i)) is
+      crossbar_split : process (deserRst, rLane(i), r, axilReadMasters(LANE_BASE_AXI_INDEX_C+i), 
+                                axilWriteMasters(LANE_BASE_AXI_INDEX_C+i), rdDataCount, 
+                                dFifoValid, dFifoSof) is
          variable v             : LaneRegType;
          variable regCon        : AxiLiteEndPointType;
          constant base          : slv(15 downto 0) := toSlv((i+1)*256, 16); -- 0x"0100" x laneNumber
@@ -473,6 +475,18 @@ begin
 
          
          axiSlaveDefault(regCon, v.axilWriteSlave, v.axilReadSlave, AXIL_ERR_RESP_G);
+         
+
+         if (i = 0) then
+            axiSlaveRegisterR(regCon, x"12C",  0, dFifoValid);
+            axiSlaveRegisterR(regCon, x"130",  0, dFifoSof);
+      
+            for j in 0 to LANES_NO_G-1 loop
+               axiSlaveRegisterR(regCon, x"0134" + toSlv(4*j, 16),  0, rdDataCount(j));
+            end loop;
+      
+
+         end if;
 
          -- reset logic      
          if (deserRst = '1') then
@@ -544,17 +558,6 @@ begin
       axiSlaveRegisterR(regCon, x"09C",  0, r.trigToSroCntrMax);
       axiSlaveRegisterR(regCon, x"010",  0, r.trigToSroCntr);
 
-      axiSlaveRegisterR(regCon, x"124",  0, r.tempDisableLane);
-      axiSlaveRegisterR(regCon, x"128",  0, fillOnFailEnV);
-      axiSlaveRegisterR(regCon, x"12C",  0, dFifoValid);
-      axiSlaveRegisterR(regCon, x"130",  0, dFifoSof);
-
-      for i in 0 to LANES_NO_G-1 loop
-         axiSlaveRegisterR(regCon, x"0134" + toSlv(4*i, 16),  0, rdDataCount(i));
-      end loop;
-
-
-      
       axiSlaveDefault(regCon, v.axilWriteSlave, v.axilReadSlave, AXIL_ERR_RESP_G);
       
       -- axi stream logic

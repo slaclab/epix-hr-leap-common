@@ -65,8 +65,6 @@ class DigitalAsicStreamAxi(pr.Device):
 
       self.add(pr.RemoteVariable(name='fillOnFailDataMax', description='', offset=0x00000018, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
 
-      self.add(pr.RemoteVariable(name='tempDisableLane', description='', offset=0x00000124, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
-      self.add(pr.RemoteVariable(name='fillOnFailEnV', description='', offset=0x00000128, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
       self.add(pr.RemoteVariable(name='dFifoValid', description='', offset=0x0000012C, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
       self.add(pr.RemoteVariable(name='dFifoSof', description='', offset=0x00000130, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
 
