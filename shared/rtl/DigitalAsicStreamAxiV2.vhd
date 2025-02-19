@@ -801,7 +801,7 @@ begin
                v.sroToSofCntrMax(i) := r.sroToSofCntr(i);
             end if;
          -- Check if there is not data on that lane in this cycle (only significant in WAIT_SOF_S state)
-         elsif r.state = WAIT_SOF_S and dFifoSof(i) = '0' and r.sroReceived = '1' and r.sroToSofCntr(i) /= x"ffff" then
+         elsif r.state = WAIT_SOF_S and dFifoValid(i) = '0' and r.sroReceived = '1' and r.sroToSofCntr(i) /= x"ffff" then
             v.sroToSofCntr(i) := r.sroToSofCntr(i) + 1;
          end if;
          
