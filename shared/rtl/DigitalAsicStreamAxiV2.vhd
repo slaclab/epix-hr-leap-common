@@ -132,6 +132,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       fillOnFailTimeoutData       : slv(31 downto 0); 
       fillOnFailTimeoutWaitSof    : slv(31 downto 0); 
       fillOnFailTimeoutCntr       : slv(31 downto 0); 
+      fillOnFailTimeoutCntrMax    : slv(31 downto 0);
       sroReceived                 : sl;
       wsofStateCntrMin            : slv(15 downto 0);
       wsofStateCntrMax            : slv(15 downto 0);
@@ -145,7 +146,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       frameCyclesCtrMin           : slv(15 downto 0);
       frameCyclesCntrMax          : slv(15 downto 0); 
       frameCyclesCntr             : slv(15 downto 0);  
-      sroToSofCntrReg             : Slv16Array(LANES_NO_G-1 downto 0);
+      sroToSofCntrMax             : Slv16Array(LANES_NO_G-1 downto 0);
       sroToSofCntr                : Slv16Array(LANES_NO_G-1 downto 0);  
       trigToSroCntrMin              : slv(15 downto 0);
       trigToSroCntrMax            : slv(15 downto 0); 
@@ -190,6 +191,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       tempDisableLane             => (others=>'0'),
       fillOnFailLastMask          => (others=>'0'),
       fillOnFailTimeoutCntr       => (others=>'0'),
+      fillOnFailTimeoutCntrMax    => (others=>'0'),
       daqTriggerSync              => (others=>'0'),
       dFifoRd                     => (others=>'0'),
       wsofStateCntrMin            => (others=>'0'),
@@ -207,7 +209,7 @@ architecture RTL of DigitalAsicStreamAxiV2 is
       readyLowCyclesCtrMin        => (others=>'0'),        
       readyLowCyclesCtrMax        => (others=>'0'),        
       readyLowCyclesCtr           => (others=>'0'), 
-      sroToSofCntrReg             => (others=>(others=>'0')),
+      sroToSofCntrMax             => (others=>(others=>'0')),
       sroToSofCntr                => (others=>(others=>'0')),
       trigToSroCntrMin              => (others=>'1'),        
       trigToSroCntrMax            => (others=>'0'),        
@@ -279,9 +281,12 @@ architecture RTL of DigitalAsicStreamAxiV2 is
    --attribute keep : string;
    --attribute keep of r           : signal is "true";
    --attribute keep of daqTriggerSync : signal is "true";
+   --attribute keep of acqStartSync : signal is "true";
+   --attribute keep of sroSync   : signal is "true";
    --attribute keep of dFifoEofe   : signal is "true";
    --attribute keep of dFifoEof    : signal is "true";
    --attribute keep of dFifoSof    : signal is "true";
+   --attribute keep of dFifoRst    : signal is "true";
    --attribute keep of dFifoValid  : signal is "true";
    --attribute keep of empty       : signal is "true";
    --attribute keep of underflow   : signal is "true";
@@ -337,7 +342,7 @@ begin
       dataIn      => daqTrigger,
       risingEdge  => daqTriggerSync
    );
-
+   
    sroSync_U : entity surf.SynchronizerEdge
    port map (
       clk         => deserClk,
@@ -446,10 +451,12 @@ begin
 
    G_CROSSBAR_SPLIT : for i in LANES_NO_G-1 downto 0 generate
       -- split registers with cross bar to close timing
-      crossbar_split : process (deserRst, rLane(i), r, axilReadMasters(LANE_BASE_AXI_INDEX_C+i), axilWriteMasters(LANE_BASE_AXI_INDEX_C+i)) is
+      crossbar_split : process (deserRst, rLane(i), r, axilReadMasters(LANE_BASE_AXI_INDEX_C+i), 
+                                axilWriteMasters(LANE_BASE_AXI_INDEX_C+i), rdDataCount(i), 
+                                dFifoValid, dFifoSof) is
          variable v             : LaneRegType;
          variable regCon        : AxiLiteEndPointType;
-         constant base          : slv(15 downto 0) := toSlv((i+1)*256, 16); -- 0x"0100" x laneNumber
+         constant base          : slv(15 downto 0) := toSlv((i+1)*256, 16); -- 0x"0100" x laneNumber + 1
       begin
          v := rLane(i);
 
@@ -464,10 +471,21 @@ begin
          axiSlaveRegisterR(regCon, x"0014"+base,  0, r.dataDlyLaneReg(i));
          axiSlaveRegisterR(regCon, x"0018"+base,  0, r.dataOvfLane(i));
          axiSlaveRegisterR(regCon, x"001C"+base,  0, r.fillOnFailCntLane(i));
-         axiSlaveRegisterR(regCon, x"0020"+base,  0, r.sroToSofCntrReg(i));
+         axiSlaveRegisterR(regCon, x"0020"+base,  0, r.sroToSofCntrMax(i));
+         axiSlaveRegisterR(regCon, x"0024"+base,  0, rdDataCount(i));
 
+         if (i = 0) then
+            axiSlaveRegisterR(regCon, x"002C"+base,  0, dFifoValid);
+            axiSlaveRegisterR(regCon, x"0030"+base,  0, dFifoSof);
+            axiSlaveRegisterR(regCon, x"0034"+base,  0, r.fillOnFailTimeoutCntr);
+            axiSlaveRegisterR(regCon, x"0038"+base,  0, r.sroReceived);
+            axiSlaveRegisterR(regCon, x"003C"+base,  0, r.tempDisableLane);
+         end if;         
          
          axiSlaveDefault(regCon, v.axilWriteSlave, v.axilReadSlave, AXIL_ERR_RESP_G);
+         
+
+
 
          -- reset logic      
          if (deserRst = '1') then
@@ -483,9 +501,9 @@ begin
    end generate;
 
    
-   comb : process (deserRst, axilReadMasters(GENERAL_AXI_INDEX_C), axilWriteMasters(GENERAL_AXI_INDEX_C), txSlave, r, 
-      acqNoSync, dFifoExtData, dFifoValid, dFifoSof, dFifoEof, dFifoEofe, 
-      daqTriggerSync, sroSync, rxValid, rxSof, rxEof, rxEofe, rxFull) is
+   comb : process (deserRst, axilReadMasters(GENERAL_AXI_INDEX_C), axilWriteMasters(GENERAL_AXI_INDEX_C),
+                  txSlave, r, acqNoSync, dFifoExtData, dFifoValid, dFifoSof, dFifoEof, dFifoEofe, 
+                  daqTriggerSync, sroSync, rxValid, rxSof, rxEof, rxEofe, rxFull, rdDataCount) is
       variable v             : RegType;
       variable regCon        : AxiLiteEndPointType;
       variable fillOnFailEnV : slv(LANES_NO_G-1 downto 0);
@@ -507,13 +525,14 @@ begin
       axiSlaveRegisterR(regCon, x"004",  0, r.frmSize);
       axiSlaveRegisterR(regCon, x"008",  0, r.frmMax);
       axiSlaveRegisterR(regCon, x"00C",  0, r.frmMin);
+      axiSlaveRegister (regCon, x"014",  0, v.fillOnFailPeristantDisable);      
+      axiSlaveRegisterR(regCon, x"018",  0, r.fillOnFailTimeoutCntrMax);
       axiSlaveRegister (regCon, x"024",  0, v.rstCnt);
       axiSlaveRegister (regCon, x"028",  0, v.dataReqLane);
       axiSlaveRegister (regCon, x"02C",  0, v.disableLane);
       axiSlaveRegister (regCon, x"030",  0, v.enumDisLane);
       axiSlaveRegister (regCon, x"034",  0, v.gainBitRemap);
       axiSlaveRegister (regCon, x"038",  0, v.fillOnFailEn);
-      axiSlaveRegister (regCon, x"014",  0, v.fillOnFailPeristantDisable);
       axiSlaveRegister (regCon, x"03C",  0, v.fillOnFailTimeoutWaitSof);
       axiSlaveRegister (regCon, x"040",  0, v.fillOnFailTimeoutData);
       axiSlaveRegisterR(regCon, x"044",  0, r.fillOnFailCnt);
@@ -537,7 +556,7 @@ begin
       axiSlaveRegisterR(regCon, x"098",  0, r.trigToSroCntrMin);
       axiSlaveRegisterR(regCon, x"09C",  0, r.trigToSroCntrMax);
       axiSlaveRegisterR(regCon, x"010",  0, r.trigToSroCntr);
-      
+
       axiSlaveDefault(regCon, v.axilWriteSlave, v.axilReadSlave, AXIL_ERR_RESP_G);
       
       -- axi stream logic
@@ -563,13 +582,10 @@ begin
                v.tempDisableLane := (others => '0');
             end if;
             v.fillOnFailTimeoutCntr := (others => '0');
+            -- Any SRO before daq trigger is ignored
             v.sroReceived := '0';
             if daqTriggerSync = '1' then
                v.state := WAIT_SOF_S;
-               -- Any SRO before daq trigger is ignored
-               if (sroSync = '1') then
-                  v.sroReceived := '1';
-               end if;
             end if;
 
          -- condition to enter here is that daqTriggerSync already arrived
@@ -585,15 +601,8 @@ begin
                end if;             
             end loop;
             
-            -- next SRO while waiting for previous SOF. Too late to recover using autoFillOnFailure
-            for i in 0 to (LANES_NO_G-1) loop
-               if daqTriggerSync = '1' and dFifoSof(i) = '0' then
-                  v.timeoutCntLane(i) := r.timeoutCntLane(i) + 1;
-                end if;
-            end loop;
-            
-            if ((dFifoSof(LANES_NO_G-1 downto 0) or r.disableLane or (fillOnFailEnV and r.tempDisableLane)) = VECTOR_OF_ONES_C(LANES_NO_G-1 downto 0)) then
-               v.acqNo(1) := r.acqNo(0);
+            if ((dFifoSof and dFifoValid) or r.disableLane or (fillOnFailEnV and r.tempDisableLane)) = VECTOR_OF_ONES_C(LANES_NO_G-1 downto 0) then
+               v.acqNo(1) := r.acqNo(0); 
                v.state := HDR_S;
                v.fillOnFailTimeoutCntr := (others => '0');
                -- 
@@ -606,7 +615,9 @@ begin
             -- reach limit to fill on fail counter, disable lane temporarily for this image
             if (r.fillOnFailTimeoutCntr >= r.fillOnFailTimeoutWaitSof) then
                for i in 0 to (LANES_NO_G-1) loop
-                  if dFifoSof(i) = '0' and r.disableLane(i) = '0' and r.fillOnFailEn = '1' then
+                  if (dFifoSof(i) = '0' or (dFifoSof(i) = '1' and dFifoValid(i) = '0')) and 
+                  r.disableLane(i) = '0' and 
+                  r.fillOnFailEn = '1' then
                      v.tempDisableLane(i) := '1';
                   end if;
                end loop;
@@ -752,9 +763,9 @@ begin
             if r.dataCntLaneMin(i) >= r.dataCntLane(i) then
                v.dataCntLaneMin(i) := r.dataCntLane(i);
             end if;
-         elsif r.daqTriggerSync(0) = '1' then                     -- daqTriggerSync must be delayed few cycles as the same signal is taking the FSM out from DATA_S (condition above)
+         elsif r.daqTriggerSync(0) = '1' then                  -- daqTriggerSync must be delayed few cycles as the same signal is taking the FSM out from 1, 1, 1, 1 (condition above)
             v.dataCntLane(i) := (others=>'0');                 -- reset counter before next data cycle
-         elsif rxValid(i) = '1' and rxSof(i) = '0' then
+         elsif rxValid(i) = '1' and rxSof(i) = '0' and r.state = DATA_S then
             v.dataCntLane(i) := r.dataCntLane(i) + 1;
          end if;
          
@@ -762,33 +773,35 @@ begin
          if r.rstCnt = '1' then
             v.dataDlyLaneReg(i)  := (others=>'0');
             v.dataDlyLane(i)     := (others=>'0');
-         elsif daqTriggerSync = '1' then
+         elsif r.sroReceived = '0' then
             v.dataDlyLane(i) := (others=>'0');
          -- Register data only on time of transition out of WAIT_SOF_S state
          elsif (r.stateD1 = WAIT_SOF_S and r.state /= WAIT_SOF_S) then
             v.dataDlyLaneReg(i) := r.dataDlyLane(i);
          -- Check if there is not data on that lane in this cycle (only significant in WAIT_SOF_S state)
-         elsif dFifoSof(i) = '0' and r.dataDlyLane(i) /= x"ffff" then
+         elsif dFifoSof(i) = '0' and r.dataDlyLane(i) /= x"ffff" and r.state = WAIT_SOF_S then
             v.dataDlyLane(i) := r.dataDlyLane(i) + 1;
          end if;
          
          -- count writes to full FIFO (overflow)
          if r.rstCnt = '1' then
             v.dataOvfLane(i) := (others=>'0');
-         elsif rxFull(i) = '1' and rxValid(i) = '1' and r.dataOvfLane(i) /= x"ffff" then
+         elsif rxFull(i) = '1' and rxValid(i) = '1' and r.dataOvfLane(i) /= x"ffff" and (r.state = WAIT_SOF_S or r.state = HDR_S or r.state = DATA_S) then
             v.dataOvfLane(i) := r.dataOvfLane(i) + 1;
          end if;
 
          if r.rstCnt = '1' then
-            v.sroToSofCntrReg(i)  := (others=>'0');
+            v.sroToSofCntrMax(i)  := (others=>'0');
             v.sroToSofCntr(i)     := (others=>'0');
-         elsif daqTriggerSync = '1' then
+         elsif r.sroReceived = '0' then
             v.sroToSofCntr(i) := (others=>'0');
          -- Register data only on time of transition out of WAIT_SOF_S state
          elsif (r.stateD1 = WAIT_SOF_S and r.state /= WAIT_SOF_S) then
-            v.sroToSofCntrReg(i) := r.sroToSofCntr(i);
+            if ( r.sroToSofCntrMax(i) < r.sroToSofCntr(i)) then
+               v.sroToSofCntrMax(i) := r.sroToSofCntr(i);
+            end if;
          -- Check if there is not data on that lane in this cycle (only significant in WAIT_SOF_S state)
-         elsif dFifoSof(i) = '0' and r.sroReceived = '1' and r.sroToSofCntr(i) /= x"ffff" then
+         elsif r.state = WAIT_SOF_S and dFifoValid(i) = '0' and r.sroReceived = '1' and r.sroToSofCntr(i) /= x"ffff" then
             v.sroToSofCntr(i) := r.sroToSofCntr(i) + 1;
          end if;
          
@@ -811,6 +824,18 @@ begin
             v.wsofStateCntr := r.wsofStateCntr + 1;
          end if;
       end if;
+
+      if r.rstCnt = '1' then
+         v.fillOnFailTimeoutCntrMax  := (others=>'0');
+      else
+         if (r.stateD1 = DATA_S) then -- update min, max register when inside the state
+            if r.fillOnFailTimeoutCntrMax <= r.fillOnFailTimeoutCntr then
+               v.fillOnFailTimeoutCntrMax := r.fillOnFailTimeoutCntr;
+            end if;
+         end if;
+      end if;
+
+      
 
       if r.rstCnt = '1' then
          v.dataStateCntrMin  := (others=>'1');
@@ -901,7 +926,7 @@ begin
          if (r.state = WAIT_SOF_S and r.sroReceived = '0') then
             v.trigToSroCntr := r.trigToSroCntr + 1;
          end if;
-         if (r.state = WAIT_SOF_S and sroSync = '1') then 
+         if (r.state /= WAIT_SOF_S and r.stateD1 = WAIT_SOF_S) then 
             if r.trigToSroCntrMax <= r.trigToSroCntr then
                v.trigToSroCntrMax := r.trigToSroCntr;
             end if;

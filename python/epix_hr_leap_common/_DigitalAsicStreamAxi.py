@@ -38,7 +38,7 @@ class DigitalAsicStreamAxi(pr.Device):
       self.add(pr.RemoteVariable(name='FillOnFailPersistantDisable',description='Failing lanes are perminantly disabled',                   offset=0x00000014, bitSize=1,   bitOffset=0, base=pr.UInt, disp = '{}', mode='RW', enum=yesNo))
       self.add(pr.RemoteVariable(name='SroToSofTimeout',            description='Timeout waiting for Sof After Sro',                        offset=0x0000003C, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
       self.add(pr.RemoteVariable(name='DataTimeout',                description='Timeout waiting for all lanes to send a single pixel',     offset=0x00000040, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RW'))
-      self.add(pr.RemoteVariable(name='FillOnFailCnt',              description='No. of images where fill-on-fail was activated',           offset=0x00000044, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO'))
+      self.add(pr.RemoteVariable(name='FillOnFailCnt',              description='No. of images where fill-on-fail was activated',           offset=0x00000044, bitSize=32,  bitOffset=0, base=pr.UInt, disp = '{}', mode='RO', pollInterval = 1))
 
       self.add(pr.RemoteVariable(name='FillOnFailLastMask',     description='Last temporary mask used to disable lanes', offset=0x00000048, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', pollInterval = 1))
       self.add(pr.RemoteVariable(name='State',                  description='IDLE_S, WAIT_SOF_S, HDR_S, DATA_S, TIMEOUT_S', offset=0x0000004C, bitSize=8,  bitOffset=0, base=pr.UInt, mode='RO', enum=states, pollInterval = 1))
@@ -63,9 +63,29 @@ class DigitalAsicStreamAxi(pr.Device):
       self.add(pr.RemoteVariable(name='TrigToSroCntrMax', description='', offset=0x0000009C, bitSize=16,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
       self.add(pr.RemoteVariable(name='TrigToSroCntr', description='', offset=0x00000010, bitSize=16,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
 
+      self.add(pr.RemoteVariable(name='fillOnFailDataMax', description='', offset=0x00000018, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+
+      self.add(pr.RemoteVariable(name='dFifoValid', description='', offset=0x0000012C, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='dFifoSof', description='', offset=0x00000130, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='fillOnFailTimeoutCntr', description='', offset=0x00000134, bitSize=32,  bitOffset=0, base=pr.UInt, mode='RO', disp = '{}', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='sroReceived', description='', offset=0x00000138, bitSize=1,  bitOffset=0, base=pr.UInt, mode='RO', pollInterval = 1))
+      self.add(pr.RemoteVariable(name='tempDisableLane', description='', offset=0x0000013C, bitSize=24,  bitOffset=0, base=pr.UInt, mode='RO', pollInterval = 1))
+
       for i in range(1, numberLanes+1):
          self.add(pr.RemoteVariable(
-            name         = f'SroToSofCntr[{i-1}]',
+            name         = f'rdDataCount[{i-1}]',
+            description  = '',
+            offset       = 0x024 + i*0x100,
+            bitSize      = 9,
+            mode         = 'RO',
+            pollInterval = 1,
+            disp         = '{}', 
+         ))
+
+
+      for i in range(1, numberLanes+1):
+         self.add(pr.RemoteVariable(
+            name         = f'SroToSofCntrMax[{i-1}]',
             description  = 'counts the number of cycles between the arrival of SRO and the SOF',
             offset       = 0x020 + i*0x100,
             bitSize      = 16,
@@ -164,4 +184,15 @@ class DigitalAsicStreamAxi(pr.Device):
 
       self.add(pr.RemoteCommand(name='CountReset', description='Resets counters', 
                              offset=0x00000024, bitSize=1, bitOffset=0, function=pr.Command.touchOne))
+      
+      @self.command()
+      def FixTimeouts():
+         maxSroToSofDelay = 0
+         for i in range(numberLanes) :
+            current = self.SroToSofCntrMax[i].get()
+            if (maxSroToSofDelay < current) :
+               maxSroToSofDelay = current
+         self.SroToSofTimeout.set(maxSroToSofDelay + 10)
 
+
+         self.DataTimeout.set(self.fillOnFailDataMax.get() + 10)
